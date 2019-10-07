@@ -1,11 +1,8 @@
-var auth = require("../helpers/auth");
 var _ = require('lodash');
 var defaultLog = require('winston').loggers.get('default');
 var mongoose = require('mongoose');
 var Actions = require('../helpers/actions');
 var Utils = require('../helpers/utils');
-var request = require('request');
-var _accessToken = null;
 var qs = require('qs');
 
 function isEmpty(obj) {
@@ -359,6 +356,31 @@ var searchCollection = async function (roles, keywords, collection, pageNum, pag
     });
   }
 
+  if (populate === true && collection === 'Inspection') {
+    // pop elements and their items.
+    aggregation.push(
+      {
+        '$lookup': {
+          "from": "epic",
+          "localField": "elements",
+          "foreignField": "_id",
+          "as": "elements"
+        }
+      }
+    );
+  } else if (populate === true && collection === 'InspectionElement') {
+    aggregation.push(
+      {
+        '$lookup': {
+          "from": "epic",
+          "localField": "items",
+          "foreignField": "_id",
+          "as": "items"
+        }
+      }
+    );
+  }
+
   aggregation.push({
     $redact: {
       $cond: {
@@ -473,21 +495,22 @@ var executeQuery = async function (args, res, next) {
 
     console.log("Searching Collection:", dataset);
     console.log("sortField:", sortField);
-    var data = await searchCollection(roles, keywords, dataset, pageNum, pageSize, project, sortField, sortDirection, caseSensitive, populate, and, or)
+    var itemData = await searchCollection(roles, keywords, dataset, pageNum, pageSize, project, sortField, sortDirection, caseSensitive, populate, and, or)
     if (dataset === 'Comment') {
       // Filter
-      _.each(data[0].searchResults, function (item) {
+      _.each(itemData[0].searchResults, function (item) {
         if (item.isAnonymous === true) {
           delete item.author;
         }
       });
     }
-    return Actions.sendResponse(res, 200, data);
+    return Actions.sendResponse(res, 200, itemData);
 
   } else if (dataset === 'Item') {
     var collectionObj = mongoose.model(args.swagger.params._schemaName.value);
     console.log("ITEM GET", { _id: args.swagger.params._id.value })
-    var data = await collectionObj.aggregate([
+
+    let aggregation = [
       {
         "$match": { _id: mongoose.Types.ObjectId(args.swagger.params._id.value) }
       },
@@ -516,7 +539,53 @@ var executeQuery = async function (args, res, next) {
           }
         }
       }
-    ]);
+    ];
+
+    if (args.swagger.params._schemaName.value === 'Inspection') {
+      // pop elements and their items.
+      aggregation.push(
+        {
+          '$lookup': {
+            "from": "epic",
+            "localField": "elements",
+            "foreignField": "_id",
+            "as": "elements"
+          }
+        }
+      );
+      aggregation.push({
+        "$lookup": {
+          "from": "epic",
+          "localField": "project",
+          "foreignField": "_id",
+          "as": "project"
+        }
+      });
+      aggregation.push({
+        "$addFields": {
+          project: "$project",
+        }
+      });
+      aggregation.push({
+        "$unwind": {
+          "path": "$project",
+          "preserveNullAndEmptyArrays": true
+        }
+      });
+    } else if (args.swagger.params._schemaName.value === 'InspectionElement') {
+      aggregation.push(
+        {
+          '$lookup': {
+            "from": "epic",
+            "localField": "items",
+            "foreignField": "_id",
+            "as": "items"
+          }
+        }
+      );
+    }
+    var data = await collectionObj.aggregate(aggregation);
+
     if (args.swagger.params._schemaName.value === 'Comment') {
       // Filter
       _.each(data, function (item) {

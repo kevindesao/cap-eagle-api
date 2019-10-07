@@ -1,21 +1,30 @@
-// todo get these podTemplates from templates folder?
-def sonarqubePodLabel = "eagle-api-${UUID.randomUUID().toString()}"
-// podTemplate(label: sonarqubePodLabel, name: sonarqubePodLabel, serviceAccount: 'jenkins', cloud: 'openshift', containers: [])
-
-@NonCPS
 import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import java.util.regex.Pattern
+
 /*
  * Sends a rocket chat notification
  */
 def notifyRocketChat(text, url) {
     def rocketChatURL = url
+    def message = text.replaceAll(~/\'/, "")
     def payload = JsonOutput.toJson([
       "username":"Jenkins",
       "icon_url":"https://wiki.jenkins.io/download/attachments/2916393/headshot.png",
-      "text": text
+      "text": message
     ])
 
     sh("curl -X POST -H 'Content-Type: application/json' --data \'${payload}\' ${rocketChatURL}")
+}
+
+
+/*
+ * takes in a sonarqube status json payload
+ * and returns the status string
+ */
+def sonarGetStatus (jsonPayload) {
+  def jsonSlurper = new JsonSlurper()
+  return jsonSlurper.parseText(jsonPayload).projectStatus.status
 }
 
 /*
@@ -99,10 +108,43 @@ def nodejsSonarqube () {
           checkout scm
           dir('sonar-runner') {
             try {
+              // run scan
               sh("oc extract secret/sonarqube-secrets --to=${env.WORKSPACE}/sonar-runner --confirm")
               SONARQUBE_URL = sh(returnStdout: true, script: 'cat sonarqube-route-url')
 
-              sh "npm install typescript && ./gradlew sonarqube -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.verbose=true --stacktrace --info"
+              sh "npm install typescript"
+              sh returnStdout: true, script: "./gradlew sonarqube -Dsonar.host.url=${SONARQUBE_URL} -Dsonar. -Dsonar.verbose=true --stacktrace --info"
+
+              // wiat for scan status to update
+              sleep(30)
+
+              // check if sonarqube passed
+              sh("oc extract secret/sonarqube-status-urls --to=${env.WORKSPACE}/sonar-runner --confirm")
+              SONARQUBE_STATUS_URL = sh(returnStdout: true, script: 'cat sonarqube-status-api')
+
+              SONARQUBE_STATUS_JSON = sh(returnStdout: true, script: "curl -w '%{http_code}' '${SONARQUBE_STATUS_URL}'")
+              SONARQUBE_STATUS = sonarGetStatus (SONARQUBE_STATUS_JSON)
+
+              if ( "${SONARQUBE_STATUS}" == "ERROR") {
+                echo "Scan Failed"
+
+                notifyRocketChat(
+                  "@all The latest build ${env.BUILD_DISPLAY_NAME} of eagle-api seems to be broken. \n ${env.BUILD_URL}\n Error: \n Sonarqube scan failed",
+                  ROCKET_DEPLOY_WEBHOOK
+                )
+
+                currentBuild.result = 'FAILURE'
+                exit 1
+              } else {
+                echo "Scan Passed"
+              }
+
+            } catch (error) {
+              notifyRocketChat(
+                "@all The latest build ${env.BUILD_DISPLAY_NAME} of eagle-api seems to be broken. \n ${env.BUILD_URL}\n Error: \n ${error}",
+                ROCKET_DEPLOY_WEBHOOK
+              )
+              throw error
             } finally {
               echo "Scan Complete"
             }
@@ -154,8 +196,8 @@ pipeline {
                 echo ">> IMAGE_HASH: ${IMAGE_HASH}"
               } catch (error) {
                 notifyRocketChat(
-                  "@all The latest build of eagle-api seems to be broken. \n Error: \n ${error}",
-                  ROCKET_QA_WEBHOOK
+                  "@all The build ${env.BUILD_DISPLAY_NAME} of eagle-api, seems to be broken.\n ${env.BUILD_URL}\n Error: \n ${error.message}",
+                  ROCKET_DEPLOY_WEBHOOK
                 )
                 throw error
               }
@@ -195,7 +237,7 @@ pipeline {
             echo ">>>> Deployment Complete"
 
             notifyRocketChat(
-              "@all A new version of eagle-api is now in Dev. \n Changes: \n ${CHANGELOG}",
+              "A new version of eagle-api is now in Dev, build: ${env.BUILD_DISPLAY_NAME} \n Changes: \n ${CHANGELOG}",
               ROCKET_DEPLOY_WEBHOOK
             )
 
@@ -205,7 +247,7 @@ pipeline {
             )
           } catch (error) {
             notifyRocketChat(
-              "@all The latest deployment of eagle-api to Dev seems to have failed\n Error: \n ${error.message}",
+              "@all The build ${env.BUILD_DISPLAY_NAME} of eagle-api, seems to be broken.\n ${env.BUILD_URL}\n Error: \n ${error.message}",
               ROCKET_DEPLOY_WEBHOOK
             )
             currentBuild.result = "FAILURE"

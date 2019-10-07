@@ -1,11 +1,9 @@
-var auth = require("../helpers/auth");
 var _ = require('lodash');
 var defaultLog = require('winston').loggers.get('default');
 var mongoose = require('mongoose');
 var qs = require('qs');
 var Actions = require('../helpers/actions');
 var Utils = require('../helpers/utils');
-var request = require('request');
 var tagList = [
   'CEAAInvolvement',
   'CELead',
@@ -412,7 +410,6 @@ exports.protectedPinDelete = async function (args, res, next) {
 
 handleGetPins = async function (projectId, roles, sortBy, pageSize, pageNum, username, res) {
   var skip = null, limit = null, sort = null;
-  var count = false;
   var query = {};
 
   _.assignIn(query, { "_schemaName": "Project" });
@@ -766,10 +763,12 @@ exports.protectedPut = async function (args, res, next) {
   obj.status = projectObj.status;
   obj.eaStatus = projectObj.eaStatus;
   obj.name = projectObj.name;
-  // obj.eaStatusDate = new Date(projectObj.eaStatusDate);
-  // obj.projectStatusDate = new Date(projectObj.projectStatusDate);
-  // obj.substantiallyDate = new Date(projectObj.substantiallyDate);
-  // obj.activeDate = new Date(projectObj.activeDate);
+
+  // obj.eaStatusDate = projectObj.eaStatusDate ? new Date(projectObj.eaStatusDate) : null;
+  // obj.projectStatusDate = projectObj.projectStatusDate ? new Date(projectObj.projectStatusDate) : null;
+  // obj.substantiallyDate = projectObj.substantiallyDate ? new Date(projectObj.substantiallyDate) : null;
+  // obj.activeDate = projectObj.activeDate ? new Date(projectObj.activeDate) : null;
+
   obj.substantially = projectObj.substantially;
 
   obj.centroid = projectObj.centroid;
@@ -781,9 +780,7 @@ exports.protectedPut = async function (args, res, next) {
   obj.CEAAInvolvement = projectObj.CEAAInvolvement;
   obj.CEAALink = projectObj.CEAALink;
   obj.eacDecision = projectObj.eacDecision;
-  if (projectObj.decisionDate) {
-    obj.decisionDate = new Date(projectObj.decisionDate);
-  }
+  obj.decisionDate = projectObj.decisionDate ? new Date(projectObj.decisionDate) : null;
 
   try {
     obj.intake = {};
