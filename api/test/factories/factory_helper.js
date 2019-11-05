@@ -27,6 +27,10 @@ function generateFakePerson(firstName, middleName, lastName) {
     };
 }
 
+function getRandomExistingUserId(usersPool) {
+    return  (usersPool) ? faker.random.arrayElement(usersPool)._id : require('mongoose').Types.ObjectId();
+}
+
 function loadBcCities() {
     if (0 < bcCities.length) return;
     for (let i = 0; i < canada.cities.length; i++) {
@@ -39,6 +43,15 @@ function loadBcCities() {
 function getBcCities() {
     loadBcCities();
     return bcCities;
+}
+
+function generateFakePostal() {
+    let pdPool = "XVTSRPNKLMHJGECBA".split("");
+    let remPool = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    let postalDistrict = faker.random.arrayElement(pdPool);
+    let forwardSortationArea = postalDistrict + "#" + faker.random.arrayElement(remPool);
+    let localDeliveryUnit = "#" + faker.random.arrayElement(remPool) + "#";
+    return faker.helpers.replaceSymbolWithNumber(forwardSortationArea + " " + localDeliveryUnit);
 }
 
 function generateFakeBcLatLong() {
@@ -78,7 +91,10 @@ function generateFakeLocationString() {
     return location;
 }
 
+exports.faker = faker;
 exports.getBcCities = getBcCities;
+exports.generateFakePostal = generateFakePostal;
 exports.generateFakeBcLatLong = generateFakeBcLatLong;
 exports.generateFakePerson = generateFakePerson;
+exports.getRandomExistingUserId = getRandomExistingUserId;
 exports.generateFakeLocationString = generateFakeLocationString;

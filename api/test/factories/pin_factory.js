@@ -3,7 +3,9 @@ const factory_helper = require('./factory_helper');
 const Pin = require('../../helpers/models/pin');
 let faker = require('faker/locale/en');
 
-factory.define('pin', Pin, buildOptions => {
+const factoryName = Pin.modelName;
+
+factory.define(factoryName, Pin, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
 
   let pinNum = factory.seq('Pin.number', (n) => `${n}`);
@@ -15,12 +17,13 @@ factory.define('pin', Pin, buildOptions => {
     , city               : faker.random.arrayElement(factory_helper.getBcCities())
     , province           : "BC"
     , country            : "Canada"
-    , postalCode         : chance.postal()
-    , phone              : faker.phone.phoneNumber()
-    , fax                : faker.phone.phoneNumber()
+    , postalCode         : factory_helper.generateFakePostal()
+    , phone              : faker.phone.phoneNumberFormat(1)
+    , fax                : faker.phone.phoneNumberFormat(1)
     , www                : faker.internet.url()
   };
   return attrs;
 });
 
 exports.factory = factory;
+exports.name = factoryName;

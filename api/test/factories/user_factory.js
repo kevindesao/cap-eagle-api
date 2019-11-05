@@ -3,7 +3,9 @@ const factory_helper = require('./factory_helper');
 const User = require('../../helpers/models/user');
 let faker = require('faker/locale/en');
 
-factory.define('user', User, buildOptions => {
+let factoryName = User.modelName;
+
+factory.define(factoryName, User, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
 
   let person = factory_helper.generateFakePerson();
@@ -16,17 +18,17 @@ factory.define('user', User, buildOptions => {
     , org                     : require('mongoose').Types.ObjectId()
     , orgName                 : faker.company.companyName()
     , title                   : faker.name.title()
-    , phoneNumber             : faker.phone.phoneNumber()
+    , phoneNumber             : faker.phone.phoneNumberFormat(1)
     , salutation              : faker.name.prefix()
     , department              : faker.name.jobArea()
-    , faxNumber               : faker.phone.phoneNumber()
-    , cellPhoneNumber         : faker.phone.phoneNumber()
+    , faxNumber               : faker.phone.phoneNumberFormat(1)
+    , cellPhoneNumber         : faker.phone.phoneNumberFormat(1)
     , address1                : faker.address.streetAddress()
     , address2                : faker.address.secondaryAddress()
     , city                    : faker.random.arrayElement(factory_helper.getBcCities())
     , province                : "BC"
     , country                 : "Canada"
-    , postalCode              : chance.postal()
+    , postalCode              : factory_helper.generateFakePostal()
     , notes                   : faker.random.arrayElement(["", faker.lorem.paragraph()])
     , read                    : faker.random.arrayElement(['["public"]', '["sysadmin"]'])
     , write                   : faker.random.arrayElement(['["public"]', '["sysadmin"]'])
@@ -36,3 +38,4 @@ factory.define('user', User, buildOptions => {
 });
 
 exports.factory = factory;
+exports.name = factoryName;
