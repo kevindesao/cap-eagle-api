@@ -2,7 +2,11 @@
   "kind": "Template",
   "apiVersion": "v1",
   "metadata": {
+<<<<<<< refs/remotes/upstream/develop
     "name": "${NAME}",
+=======
+    "name": "cap-eagle-api",
+>>>>>>> Updated openshift build & deployment templates
     "annotations": {
       "description": "",
       "tags": "nodejs",
