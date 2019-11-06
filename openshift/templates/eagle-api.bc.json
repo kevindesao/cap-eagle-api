@@ -2,7 +2,7 @@
   "kind": "Template",
   "apiVersion": "v1",
   "metadata": {
-    "name": "eagle-api",
+    "name": "cap-eagle-api",
     "annotations": {
       "description": "",
       "tags": "nodejs",
@@ -89,7 +89,7 @@
       "displayName": "Name",
       "description": "The name assigned to all of the frontend objects defined in this template.",
       "required": true,
-      "value": "eagle-api"
+      "value": "cap-eagle-api"
     },
     {
       "name": "S2I_NAMESPACE",
@@ -107,7 +107,7 @@
       "name": "SOURCE_REPOSITORY_URL",
       "displayName": "Git Repository URL",
       "description": "The URL of the repository with your application source code.",
-      "value": "https://github.com/bcgov/eagle-api.git"
+      "value": "https://github.com/bcgov/cap-eagle-api.git"
     },
     {
       "name": "SOURCE_REPOSITORY_REF",
