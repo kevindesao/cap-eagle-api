@@ -2,7 +2,7 @@
   "kind": "Template",
   "apiVersion": "v1",
   "metadata": {
-    "name": "generic-node-s2i-build",
+    "name": "cap-eagle-api",
     "annotations": {
       "description": "",
       "tags": "nodejs",
@@ -47,7 +47,7 @@
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${S2I_NAMESPACE}",
-              "name": "nodejs:6"
+              "name": "nodejs:${NODEJS_VER}"
             }
           }
         },
@@ -89,7 +89,7 @@
       "displayName": "Name",
       "description": "The name assigned to all of the frontend objects defined in this template.",
       "required": true,
-      "value": "nodejs-api"
+      "value": "cap-eagle-api"
     },
     {
       "name": "S2I_NAMESPACE",
@@ -98,15 +98,22 @@
       "value": "openshift"
     },
     {
+      "name": "NODEJS_VER",
+      "displayName": "Node.js Version Number",
+      "description": "The version number of Node.js that matches the version in project file .tool-versions",
+      "value": "8"
+    },
+    {
       "name": "SOURCE_REPOSITORY_URL",
       "displayName": "Git Repository URL",
       "description": "The URL of the repository with your application source code.",
-      "value": "https://github.com/bcgov/eagle-api.git"
+      "value": "https://github.com/bcgov/cap-eagle-api.git"
     },
     {
       "name": "SOURCE_REPOSITORY_REF",
       "displayName": "Git Reference",
-      "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+      "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
+      "value": "develop"
     },
     {
       "name": "CONTEXT_DIR",
