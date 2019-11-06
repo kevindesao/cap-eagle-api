@@ -249,7 +249,7 @@
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${MONGO_IMAGE_NAMESPACE}",
-                "name": "mongodb:3.2"
+                "name": "mongodb:${MONGO_VER}"
               }
             }
           },
@@ -347,13 +347,19 @@
       "displayName": "Name",
       "description": "The name assigned to all of the frontend objects defined in this template.",
       "required": true,
-      "value": "eagle-api"
+      "value": "cap-eagle-api"
     },
     {
       "name": "MONGO_IMAGE_NAMESPACE",
       "displayName": "mongo image namespace",
       "description": "The OpenShift Namespace where the mongo ImageStream resides.",
       "value": "openshift"
+    },
+    {
+      "name": "MONGO_VER",
+      "displayName": "Mongo Version Number",
+      "description": "The version number of Mongo that matches the version in project file package.json",
+      "value": "3.6"
     },
     {
       "name": "MEMORY_LIMIT",
@@ -371,7 +377,7 @@
       "name": "APPLICATION_DOMAIN",
       "displayName": "Application Hostname",
       "description": "The exposed hostname that will route to the Node.js service, if left blank a value will be defaulted.",
-      "value": "eagle-dev.pathfinder.gov.bc.ca"
+      "value": "cap-eagle-dev.pathfinder.gov.bc.ca"
     },
     {
       "name": "APPLICATION_DOMAIN_PATH",
@@ -435,14 +441,14 @@
       "name": "APP_IMAGE_NAME",
       "displayName": "Application image name.",
       "description": "Application image name.",
-      "value": "eagle-api",
+      "value": "cap-eagle-api",
       "required": true
     },
     {
       "name": "APP_IMAGE_NAMESPACE",
       "displayName": "Namespace containing application images.",
       "description": "Namespace containing application images.",
-      "value": "eagle-tools",
+      "value": "oabrei-tools",
       "required": true
     },
     {
