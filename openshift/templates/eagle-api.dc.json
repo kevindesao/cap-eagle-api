@@ -17,9 +17,6 @@
       "kind": "PersistentVolumeClaim",
       "apiVersion": "v1",
       "metadata": {
-        "labels": {
-          "app": "${GROUP_NAME}"
-        },
         "name": "${DATABASE_SERVICE_NAME}-data"
       },
       "spec": {
@@ -112,6 +109,7 @@
           "app": "${GROUP_NAME}"
         },
         "name": "${NAME}",
+        "app": "${GROUP_NAME}",
         "annotations": {
           "description": "Defines how to deploy the application server"
         }
@@ -230,7 +228,7 @@
                 "volumeMounts": [
                   {
                     "name": "${NAME}-docs",
-                    "mountPath": "${DOCUMENTS_BUCKET_PATH}"
+                    "mountPath": "/opt/app-root/src/uploads"
                   }
                 ]
               }
@@ -278,9 +276,7 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "labels": {
-          "app": "${GROUP_NAME}"
-        },
+        "app": "${GROUP_NAME}",
         "annotations": {
           "description": "Defines how to deploy the database"
         }
@@ -410,10 +406,11 @@
       "value": "eagle-api"
     },
     {
-      "name": "OPENSHIFT_REGISTRY",
-      "displayName": "Openshift Registry",
-      "description": "The location:port where the Openshift serves images from (eg 'docker-registry.default.svc:5000').",
-      "value": "172.50.0.2:5000"
+      "name": "GROUP_NAME",
+      "displayName": "Group Name",
+      "description": "The name to group all of the frontend objects defined in this template.",
+      "required": true,
+      "value": "eagle-api"
     },
     {
       "name": "MONGO_IMAGE_NAMESPACE",
@@ -461,13 +458,13 @@
       "name": "MINIO_HOST",
       "displayName": "Minio Hostname",
       "description": "The exposed hostname to route to the MINIO service",
-      "value": "eagle-api-minio-your-openshift-namespace.pathfinder.gov.bc.ca"
+      "value": "minio-eagle-dev-esm-dev.pathfinder.gov.bc.ca"
     },
     {
       "name": "MINIO_SECRET_NAME",
       "displayName": "Name of the Minio secret",
       "description": "The name of the secrets file for Minio",
-      "value": "eagle-api-minio-keys"
+      "value": "minio-esm-dev"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
