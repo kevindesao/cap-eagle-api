@@ -228,7 +228,7 @@
                 "volumeMounts": [
                   {
                     "name": "${NAME}-docs",
-                    "mountPath": "/opt/app-root/src/uploads"
+                    "mountPath": "${DOCUMENTS_BUCKET_PATH}"
                   }
                 ]
               }
@@ -458,13 +458,13 @@
       "name": "MINIO_HOST",
       "displayName": "Minio Hostname",
       "description": "The exposed hostname to route to the MINIO service",
-      "value": "minio-eagle-dev-esm-dev.pathfinder.gov.bc.ca"
+      "value": "eagle-api-minio-your-openshift-namespace.pathfinder.gov.bc.ca"
     },
     {
       "name": "MINIO_SECRET_NAME",
       "displayName": "Name of the Minio secret",
       "description": "The name of the secrets file for Minio",
-      "value": "minio-esm-dev"
+      "value": "eagle-api-minio"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
@@ -522,7 +522,7 @@
       "name": "APP_IMAGE_NAME",
       "displayName": "Application image name.",
       "description": "The image that was built in a previous build step and is available to deploy.",
-      "value": "cap-eagle-api",
+      "value": "eagle-api",
       "required": true
     },
     {
