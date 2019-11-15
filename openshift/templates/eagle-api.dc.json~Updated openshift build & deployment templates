@@ -400,7 +400,7 @@
       "displayName": "Name",
       "description": "The name assigned to all of the frontend objects defined in this template.",
       "required": true,
-      "value": "cap-eagle-api"
+      "value": "eagle-api"
     },
     {
       "name": "GROUP_NAME",
@@ -525,7 +525,7 @@
       "name": "APP_IMAGE_NAME",
       "displayName": "Application image name.",
       "description": "The image that was built in a previous build step and is available to deploy.",
-      "value": "cap-eagle-api",
+      "value": "eagle-api",
       "required": true
     },
     {
