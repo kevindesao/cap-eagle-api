@@ -3,21 +3,24 @@
   "apiVersion": "v1",
   "metadata": {
     "name": "${NAME}",
+    "labels": {
+      "app": "${GROUP_NAME}"
+    },
     "annotations": {
       "description": "Template for Node.js applications with a MongoDB database, based on OpenShift provided templates 'nodejs-mongodb-example' and 'mongodb-persistent-template'.",
       "tags": "quickstart,nodejs,mongodb",
       "iconClass": "icon-nodejs"
     }
   },
-  "labels": {
-    "template": "${NAME}"
-  },
   "objects": [
     {
       "kind": "PersistentVolumeClaim",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}data"
+        "labels": {
+          "app": "${GROUP_NAME}"
+        },
+        "name": "${DATABASE_SERVICE_NAME}-data"
       },
       "spec": {
         "accessModes": [
@@ -34,6 +37,9 @@
       "kind": "PersistentVolumeClaim",
       "apiVersion": "v1",
       "metadata": {
+        "labels": {
+          "app": "${GROUP_NAME}"
+        },
         "name": "${NAME}-docs-pvc"
       },
       "spec": {
@@ -51,6 +57,9 @@
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
+        "labels": {
+          "app": "${GROUP_NAME}"
+        },
         "name": "${NAME}",
         "annotations": {
           "description": "Exposes and load balances the application pods"
@@ -65,6 +74,7 @@
           }
         ],
         "selector": {
+          "app": "${GROUP_NAME}",
           "name": "${NAME}"
         }
       }
@@ -73,6 +83,9 @@
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
+        "labels": {
+          "app": "${GROUP_NAME}"
+        },
         "name": "${NAME}"
       },
       "spec": {
@@ -95,6 +108,9 @@
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
+        "labels": {
+          "app": "${GROUP_NAME}"
+        },
         "name": "${NAME}",
         "annotations": {
           "description": "Defines how to deploy the application server"
@@ -125,20 +141,22 @@
         ],
         "replicas": 1,
         "selector": {
-          "name": "${NAME}"
+          "app": "${GROUP_NAME}",
+          "deploymentconfig": "${NAME}"
         },
         "template": {
           "metadata": {
-            "name": "${NAME}",
             "labels": {
-              "name": "${NAME}"
-            }
+              "app": "${GROUP_NAME}",
+              "deploymentconfig": "${NAME}"
+            },
+            "name": "${NAME}"
           },
           "spec": {
             "containers": [
               {
                 "name": "${NAME}",
-                "image": " ",
+                "image": "${OPENSHIFT_REGISTRY}/${APP_IMAGE_NAMESPACE}/${APP_IMAGE_NAME}:${APP_DEPLOYMENT_TAG}",
                 "ports": [
                   {
                     "containerPort": 3000
@@ -158,8 +176,34 @@
                     "value": "${DATABASE_NAME}"
                   },
                   {
+                    "name": "MONGODB_SERVICE_HOST",
+                    "value": "${DATABASE_SERVICE_NAME}"
+                  },
+                  {
                     "name": "API_HOSTNAME",
                     "value": "${APPLICATION_DOMAIN}"
+                  },
+                  {
+                    "name": "MINIO_HOST",
+                    "value": "${MINIO_HOST}"
+                  },
+                  {
+                    "name": "MINIO_ACCESS_KEY",
+                    "valueFrom": {
+                        "secretKeyRef": {
+                            "key": "MINIO_ACCESS_KEY",
+                            "name": "${MINIO_SECRET_NAME}"
+                        }
+                    }
+                  },
+                  {
+                      "name": "MINIO_SECRET_KEY",
+                      "valueFrom": {
+                          "secretKeyRef": {
+                              "key": "MINIO_SECRET_KEY",
+                              "name": "${MINIO_SECRET_NAME}"
+                          }
+                      }
                   }
                 ],
                 "readinessProbe": {
@@ -186,7 +230,7 @@
                 "volumeMounts": [
                   {
                     "name": "${NAME}-docs",
-                    "mountPath": "${DOCUMENT_MOUNT_PATH}"
+                    "mountPath": "${DOCUMENTS_BUCKET_PATH}"
                   }
                 ]
               }
@@ -207,6 +251,9 @@
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
+        "labels": {
+          "app": "${GROUP_NAME}"
+        },
         "name": "${DATABASE_SERVICE_NAME}",
         "annotations": {
           "description": "Exposes the database server"
@@ -215,12 +262,13 @@
       "spec": {
         "ports": [
           {
-            "name": "mongodb-${NAME}",
+            "name": "${DATABASE_SERVICE_NAME}",
             "port": 27017,
             "targetPort": 27017
           }
         ],
         "selector": {
+          "app": "${GROUP_NAME}",
           "name": "${DATABASE_SERVICE_NAME}"
         }
       }
@@ -230,6 +278,9 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
+        "labels": {
+          "app": "${GROUP_NAME}"
+        },
         "annotations": {
           "description": "Defines how to deploy the database"
         }
@@ -244,12 +295,12 @@
             "imageChangeParams": {
               "automatic": true,
               "containerNames": [
-                "mongodb"
+                "${DATABASE_SERVICE_NAME}"
               ],
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${MONGO_IMAGE_NAMESPACE}",
-                "name": "mongodb:${MONGO_VER}"
+                "name": "${MONGO_IMAGE_NAME}:${MONGO_VER}"
               }
             }
           },
@@ -259,20 +310,22 @@
         ],
         "replicas": 1,
         "selector": {
-          "name": "${DATABASE_SERVICE_NAME}"
+          "app": "${GROUP_NAME}",
+          "deploymentconfig": "${DATABASE_SERVICE_NAME}"
         },
         "template": {
           "metadata": {
-            "name": "${DATABASE_SERVICE_NAME}",
             "labels": {
-              "name": "${DATABASE_SERVICE_NAME}"
-            }
+              "app": "${GROUP_NAME}",
+              "deploymentconfig": "${DATABASE_SERVICE_NAME}"
+            },
+            "name": "${DATABASE_SERVICE_NAME}"
           },
           "spec": {
             "containers": [
               {
-                "name": "mongodb-${NAME}",
-                "image": " ",
+                "name": "${DATABASE_SERVICE_NAME}",
+                "image": "${OPENSHIFT_REGISTRY}/${MONGO_IMAGE_NAMESPACE}/${MONGO_IMAGE_NAME}:${MONGO_IMAGE_TAG}",
                 "ports": [
                   {
                     "containerPort": 27017
@@ -332,7 +385,7 @@
               {
                 "name": "${DATABASE_SERVICE_NAME}-data",
                 "persistentVolumeClaim": {
-                  "claimName": "${DATABASE_SERVICE_NAME}data"
+                  "claimName": "${DATABASE_SERVICE_NAME}-data"
                 }
               }
             ]
@@ -350,10 +403,29 @@
       "value": "cap-eagle-api"
     },
     {
+      "name": "GROUP_NAME",
+      "displayName": "Group Name",
+      "description": "The name to group all of the frontend objects defined in this template.",
+      "required": true,
+      "value": "eagle-api"
+    },
+    {
+      "name": "OPENSHIFT_REGISTRY",
+      "displayName": "Openshift Registry",
+      "description": "The location:port where the Openshift serves images from (eg 'docker-registry.default.svc:5000').",
+      "value": "172.50.0.2:5000"
+    },
+    {
       "name": "MONGO_IMAGE_NAMESPACE",
-      "displayName": "mongo image namespace",
+      "displayName": "Mongo image namespace",
       "description": "The OpenShift Namespace where the mongo ImageStream resides.",
       "value": "openshift"
+    },
+    {
+      "name": "MONGO_IMAGE_NAME",
+      "displayName": "Mongo image name",
+      "description": "The OpenShift ImageStream Name for mongo.",
+      "value": "mongodb"
     },
     {
       "name": "MONGO_VER",
@@ -377,7 +449,7 @@
       "name": "APPLICATION_DOMAIN",
       "displayName": "Application Hostname",
       "description": "The exposed hostname that will route to the Node.js service, if left blank a value will be defaulted.",
-      "value": "cap-eagle-dev.pathfinder.gov.bc.ca"
+      "value": "eagle-api-your-openshift-namespace.pathfinder.gov.bc.ca"
     },
     {
       "name": "APPLICATION_DOMAIN_PATH",
@@ -386,9 +458,21 @@
       "value": "/api"
     },
     {
+      "name": "MINIO_HOST",
+      "displayName": "Minio Hostname",
+      "description": "The exposed hostname to route to the MINIO service",
+      "value": "eagle-api-minio-your-openshift-namespace.pathfinder.gov.bc.ca"
+    },
+    {
+      "name": "MINIO_SECRET_NAME",
+      "displayName": "Name of the Minio secret",
+      "description": "The name of the secrets file for Minio",
+      "value": "eagle-api-minio-keys"
+    },
+    {
       "name": "DATABASE_SERVICE_NAME",
       "displayName": "Database Service Name",
-      "value": "mongodb"
+      "value": "eagle-api-mongodb"
     },
     {
       "name": "DATABASE_USER",
@@ -426,43 +510,50 @@
     {
       "name": "DATABASE_VOLUME_CAPACITY",
       "displayName": "Database Volume Capacity",
-      "description": "Volume space available for mongo database, e.g. 512Mi, 2Gi.",
-      "value": "20Gi",
+      "description": "Volume space available for mongo database.  3Gi or up as we need room for the log files to grow.",
+      "value": "5Gi",
       "required": true
     },
     {
       "name": "DOCUMENT_VOLUME_CAPACITY",
       "displayName": "Document Volume Capacity",
       "description": "Volume space available for Document uploads, e.g. 512Mi, 2Gi.",
-      "value": "20Gi",
+      "value": "5Gi",
       "required": true
     },
     {
       "name": "APP_IMAGE_NAME",
       "displayName": "Application image name.",
-      "description": "Application image name.",
+      "description": "The image that was built in a previous build step and is available to deploy.",
       "value": "cap-eagle-api",
       "required": true
     },
     {
       "name": "APP_IMAGE_NAMESPACE",
       "displayName": "Namespace containing application images.",
-      "description": "Namespace containing application images.",
-      "value": "oabrei-tools",
+      "description": "The tools namespace where builds occur and images are available to pull from.",
+      "value": "your-tools-namespace",
       "required": true
     },
     {
       "name": "APP_DEPLOYMENT_TAG",
       "displayName": "Image tag to watch for changes and trigger deployment.",
-      "description": "Image tag to watch for changes and trigger deployment.",
-      "value": "dev",
+      "description": "Image tag to watch for changes and trigger deployment. Eg: dev",
+      "value": "your-openshift-tag",
       "required": true
     },
     {
       "name": "READINESS_PROBE_URL",
       "displayName": "URL to watch for readiness.",
-      "description": "URL to watch for readiness.",
+      "description": "A health check will fail if after a certain time this isn't being served.",
       "value": "/api/docs",
+      "required": true
+    },
+    {
+      "name": "DOCUMENTS_BUCKET_PATH",
+      "displayName": "Documents Bucket Path",
+      "description": "Minio bucket where documents will be uploaded to.",
+      "value": "/opt/app-root/src/uploads",
       "required": true
     }
   ]
