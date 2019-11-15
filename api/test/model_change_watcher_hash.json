@@ -37,6 +37,10 @@
       "hash": "/KqbekI++Be3x8VlW74nKBPjJ8k="
     },
     {
+      "name": "notificationProject.js",
+      "hash": "xCtXM8oglu0v0tHx2M9mA+1HuOo="
+    },
+    {
       "name": "organization.js",
       "hash": "dZentKVi0ZM5unhcnyvB8ga9m08="
     },
@@ -46,7 +50,7 @@
     },
     {
       "name": "project.js",
-      "hash": "R8e0mEjqSEKaq+WaEqLf5Ah/g2g="
+      "hash": "R0iqeyTMBlrBOYhvpz1zOU6RYbg="
     },
     {
       "name": "recentActivity.js",
@@ -103,6 +107,10 @@
       "hash": "wtgXVaxKci2TKRGnj1b1V/3DhJA="
     },
     {
+      "name": "notification_project_factory.js",
+      "hash": "c3sslj8/J6cEwGfAi4zzVb9SfHc="
+    },
+    {
       "name": "organization_factory.js",
       "hash": "JTL04tyaCBvfiNPWRbQ+9sjVL88="
     },
@@ -112,7 +120,7 @@
     },
     {
       "name": "project_factory.js",
-      "hash": "JUQdU5VrrMKbnNFCFuxrWFbM2Tk="
+      "hash": "oIbiZDEuC06KECfo/XaO24ON/Dw="
     },
     {
       "name": "recent_activity_factory.js",
