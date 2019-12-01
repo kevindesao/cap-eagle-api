@@ -15,10 +15,10 @@ var minioClient = new minio.Client({
   secretKey: process.env.MINIO_SECRET_KEY
 });
 
-// This is the list of known, valid buckets documents can be uploaded and downloaded from.
-var BUCKETS = {
-  DOCUMENTS_BUCKET: 'uploads'
-};
+// This is the list of known, valid buckets documents can be uploaded and downloaded from
+// Set from a system environment variable, if that's not available then defaults to 'uploads'
+var BUCKETS = (process.env.MINIO_BUCKET_NAME) ? { DOCUMENTS_BUCKET: process.env.MINIO_BUCKET_NAME } : { DOCUMENTS_BUCKET: 'uploads' };
+
 exports.BUCKETS = BUCKETS;
 
 /**
