@@ -17,15 +17,7 @@ var minioClient = new minio.Client({
 
 // This is the list of known, valid buckets documents can be uploaded and downloaded from
 // Set from a system environment variable, if that's not available then defaults to 'uploads'
-if (process.env.MINIO_BUCKET_NAME) {
-  var BUCKETS = {
-    DOCUMENTS_BUCKET: process.env.MINIO_BUCKET_NAME
-  };
-} else {
-  var BUCKETS = {
-    DOCUMENTS_BUCKET: 'uploads'
-  };
-}
+var BUCKETS = (process.env.MINIO_BUCKET_NAME) ? { DOCUMENTS_BUCKET: process.env.MINIO_BUCKET_NAME } : { DOCUMENTS_BUCKET: 'uploads' };
 
 exports.BUCKETS = BUCKETS;
 
