@@ -3,6 +3,7 @@
 var crypto = require('crypto');
 var minio = require('minio');
 var path = require('path');
+var _ = require('lodash');
 
 /**
  * The Minio client which facilitates the connection to Minio, and through which all calls should be made.
@@ -17,7 +18,7 @@ var minioClient = new minio.Client({
 
 // This is the list of known, valid buckets documents can be uploaded and downloaded from
 // Set from a system environment variable, if that's not available then defaults to 'uploads'
-var BUCKETS = (process.env.MINIO_BUCKET_NAME) ? { DOCUMENTS_BUCKET: process.env.MINIO_BUCKET_NAME } : { DOCUMENTS_BUCKET: 'uploads' };
+var BUCKETS = _.isEmpty(process.env.MINIO_BUCKET_NAME) ? { DOCUMENTS_BUCKET: 'uploads' } : { DOCUMENTS_BUCKET: process.env.MINIO_BUCKET_NAME };
 
 exports.BUCKETS = BUCKETS;
 
