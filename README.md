@@ -35,6 +35,8 @@ Run the following two scripts to create your environment
 
 Start the server by running `npm start`
 
+For development you can use `npm run start-watch` to restart the server on code changes.
+
 Check the swagger-ui on `http://localhost:3000/api/docs/`
 
 1. POST `http://localhost:3000/api/login/token` with the following body
@@ -53,7 +55,17 @@ Check the swagger-ui on `http://localhost:3000/api/docs/`
 
 ### Database
 
-If possible, acquire a dump of the database from one of the live environments.  
+One can run the EPIC applications on two kinds of data; generated and backed-up-from-live.
+
+Generated data will typically be cleaner as it is generated against the latest mongoose models.  Generated data also does not require transferring PI to dev machines.  Live production dumps should only be used in situations where a particular bug cannot be replicated locally, and after replicating, the data generators and unit tests should be updated to include that edge case.
+
+#### Generate data
+
+Described in [generate README](generate.md)
+
+#### Restoring from a live backup
+
+Acquire a dump of the database from one of the live environments.
 
 To make sure you don't have an existing old copy (careful, this is destructive):
 
@@ -67,7 +79,7 @@ use epic
 db.dropDatabase()
 ```
 
-#### Load database dump
+##### Load database dump
 
 1. Download and unzip archived dump file.
 2. Restore the dump into your local mongo:
@@ -77,23 +89,8 @@ db.dropDatabase()
 mongorestore -d epic epic/
 ```
 
-#### Seed with generated data:
-
-Described in [seed README](seed/README.md)
-
-#### Loading legacy data
-To restore the database dump you have from the old epic system (ie ESM):
-
-```bash
-#!/bin/bash
-mongorestore -d epic dump/[old_database_name_most_likely_esm]
-```
-
-Then run the contents of [dataload](prod-load-db/esm_prod_april_1/dataload.sh) against that database.  You may need to edit the commands slightly to match your db name or to remove the ".gz --gzip" portion if your dump unpacks as straight ".bson" files.
 
 ### Database Conversions
-
-NB: These are useless once they are run on an environments' database, and are only stored here for historical record.
 
 In the process of developing this application, we have database conversion scripts that must be run in order to update the db model so that the newest codebase can work properly.  There are currently two methods of doing the database conversion depending on how long-lived and memory intensive the conversion is.
 
@@ -111,7 +108,7 @@ For dev/test/prod environments, you will need to change the database.json file i
 
 ### Method 2
 
-In the root folder, there are files named migrateDocuments*.js.  These are large, long-running, memory intensive scripts that operated on the vast majority of the EPIC documents.  As a result, db-migrate was slow and unreliable given the nature of the connection to our database.  As a result, these nodejs scripts operate using the mongodb driver in nodejs and can handle a more complicated, robust approach to doing the database conversion.  They can be run from your local machine as long as there is a ```oc port-forward``` tunnel from your machine to the openshift mongdb database.  Change the user/pass/port/host/authenticationDatabase params and the script will execute against the mongodb pod directly. 
+In the root folder, there are files named migrateDocuments*.js.  These are large, long-running, memory intensive scripts that operated on the vast majority of the EPIC documents.  As a result, db-migrate was slow and unreliable given the nature of the connection to our database.  As a result, these nodejs scripts operate using the mongodb driver in nodejs and can handle a more complicated, robust approach to doing the database conversion.  They can be run from your local machine as long as there is a ```oc port-forward``` tunnel from your machine to the openshift mongdb database.  Change the user/pass/port/host/authenticationDatabase params and the script will execute against the mongodb pod directly.
 
 ## Developing
 
@@ -159,10 +156,10 @@ This code will stand in for the swagger-tools router, and help build the objects
       auth_payload: {
         scopes: ['sysadmin', 'public'],
         userID: null
-      }, 
+      },
       fields: {
         value: ['tags', 'properties', 'applicationID']
-      }, 
+      },
       featureId: {
         value: 'AAABBB'
       }
@@ -171,17 +168,17 @@ This code will stand in for the swagger-tools router, and help build the objects
 }
 ```
 
-Unfortunately, this results in a lot of boilerplate code in each of the controller tests. There are some helpers to reduce the amount you need to write, but you will still need to check the parameter field names sent by your middleware router match what the controller(and swagger router) expect. However, this method results in  pretty effective integration tests as they exercise the controller code and save objects in the database. 
+Unfortunately, this results in a lot of boilerplate code in each of the controller tests. There are some helpers to reduce the amount you need to write, but you will still need to check the parameter field names sent by your middleware router match what the controller(and swagger router) expect. However, this method results in  pretty effective integration tests as they exercise the controller code and save objects in the database.
 
 ## Test Database
 
-The tests run on an in-memory MongoDB server, using the [mongodb-memory-server](https://github.com/nodkz/mongodb-memory-server) package. The setup can be viewed at [test_helper.js](api/test/test_helper.js), and additional config in [config/mongoose_options.js]. It is currently configured to wipe out the database after each test run to prevent database pollution. 
+The tests run on an in-memory MongoDB server, using the [mongodb-memory-server](https://github.com/nodkz/mongodb-memory-server) package. The setup can be viewed at [test_helper.js](api/test/test_helper.js), and additional config in [config/mongoose_options.js]. It is currently configured to wipe out the database after each test run to prevent database pollution.
 
-[Factory-Girl](https://github.com/aexmachina/factory-girl) is used to easily create models(persisted to db) for testing purposes. 
+[Factory-Girl](https://github.com/aexmachina/factory-girl) is used to easily create models(persisted to db) for testing purposes.
 
 ## Mocking http requests
 
-External http calls (such as GETs to BCGW) are mocked with a tool called [nock](https://github.com/nock/nock). Currently sample JSON responses are stored in the [test/fixtures](test/fixtures) directory. This allows you to intercept a call to an external service such as bcgw, and respond with your own sample data. 
+External http calls (such as GETs to BCGW) are mocked with a tool called [nock](https://github.com/nock/nock). Currently sample JSON responses are stored in the [test/fixtures](test/fixtures) directory. This allows you to intercept a call to an external service such as bcgw, and respond with your own sample data.
 
 ```javascript
   const bcgwDomain = 'https://openmaps.gov.bc.ca';
@@ -208,6 +205,15 @@ External http calls (such as GETs to BCGW) are mocked with a tool called [nock](
 ```
 
 ## Configuring Environment Variables
+
+To get all your settings for this project automatically set up, run the file
+
+```bash
+#!/bin/bash
+./install_prerequisites.sh
+```
+
+...or follow the following manual process if you require custom settings:
 
 Recall the environment variables we need for local dev:
 
