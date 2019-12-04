@@ -4,6 +4,7 @@ const DatabaseCleaner = require('database-cleaner');
 const dbCleaner = new DatabaseCleaner('mongodb');
 const mongoose = require('mongoose');
 const mongooseOpts = require('../../config/mongoose_options').mongooseOptions;
+const app_helper = require('../../app_helper');
 const mongoDbMemoryServer = require('mongodb-memory-server');
 const MongoClient = require('mongodb').MongoClient;
 const exec = require('child_process').exec;
@@ -151,7 +152,11 @@ async function mongooseConnect() {
   if (!(mongoose.connection && mongoose.connection.db)) {
     let genSettings = await dataGenerationSettings;
     if (genSettings.save_to_persistent_mongo) {
-      mongoUri = "mongodb://localhost/epic";
+      mongoUri = app_helper.dbConnection;
+      if (!_.isEmpty(app_helper.credentials)) {
+        mongooseOpts.user = app_helper.credentials.db_username;
+        mongooseOpts.pass = app_helper.credentials.db_password;
+      }
     } else {
       if (mongoServer) {
         mongoUri = await mongoServer.getConnectionString()
@@ -165,12 +170,37 @@ async function mongooseConnect() {
   }
 };
 
+// we only wish to run migrations on databases which have never run migrations before
 async function checkMigrations(callback) {
   checkMongoUri();
-  MongoClient.connect(mongoUri, function(err, db) {
+  let options;
+  if ((!_.isEmpty(app_helper.credentials)) 
+   && (!_.isEmpty(app_helper.credentials.db_username)) 
+   && (!_.isEmpty(app_helper.credentials.db_password))) {
+    options = {};
+    let auth = {};
+    auth.user = app_helper.credentials.db_username;
+    auth.password = app_helper.credentials.db_password;
+    options.auth = auth;
+  }
+  MongoClient.connect(mongoUri, options, function(err, db) {
     if (err) console.error(err);
-    var dbo = db.db("epic");
-    dbo.collection("migrations").countDocuments({}, function(err, numOfDocs){
+    var dbo = db.db(app_helper.dbName);
+    const runMigrations = 0;
+    const migrationsCollectionName = "migrations";
+    let mcn = migrationsCollectionName;
+    dbo.listCollections({name: mcn}).toArray(function(err, collInfos) {
+      if (0 == collInfos.length) {
+        dbo.createCollection(mcn, function(err, res) {
+          if (err) console.error(err);
+          console.log(mcn + " collection created");
+          db.close();
+          callback(runMigrations);
+        });
+        return;
+      }
+    });
+    dbo.collection(mcn).countDocuments({}, function(err, numOfDocs){
       if (err) console.error(err);
       db.close();
       callback(numOfDocs);
@@ -179,8 +209,11 @@ async function checkMigrations(callback) {
 }
 
 async function runMigrations(migrationCount) {
-  if (0 < migrationCount) return;
+  let genSettings = await dataGenerationSettings;
+  if (!genSettings.save_to_persistent_mongo) return;
   checkMongoUri();
+  if (-1 == mongoUri.indexOf("localhost")) return;  // TODO make this work in both memory-server instances and on deployments via database.json
+  if (0 < migrationCount) return;
   await exec("./node_modules/db-migrate/bin/db-migrate up", function(err, stdout, stderr) {
     if (err) console.error(err);
   });
