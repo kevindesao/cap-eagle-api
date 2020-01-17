@@ -452,7 +452,7 @@
       "name": "APPLICATION_DOMAIN",
       "displayName": "Application Hostname",
       "description": "The exposed hostname that will route to the Node.js service, if left blank a value will be defaulted.",
-      "value": "cap-clement-ibm-admin-oabrei-dev.clouddiscovery-01dea2606d71f7a3540418b505a890bc-0002.mon01.containers.appdomain.cloud"
+      "value": "eagle-api-your-openshift-namespace.pathfinder.gov.bc.ca"
     },
     {
       "name": "APPLICATION_DOMAIN_PATH",
@@ -464,7 +464,7 @@
       "name": "MINIO_HOST",
       "displayName": "Minio Hostname",
       "description": "The exposed hostname to route to the MINIO service",
-      "value": "cap-clement-ibm-admin-oabrei-dev.clouddiscovery-01dea2606d71f7a3540418b505a890bc-0002.mon01.containers.appdomain.cloud"
+      "value": "eagle-api-minio-your-openshift-namespace.pathfinder.gov.bc.ca"
     },
     {
       "name": "MINIO_SECRET_NAME",
