@@ -46,7 +46,7 @@ objects:
                 - name: MINIO_CONFIG_DIR
                   value: /tmp
                 - name: MINIO_DATA_DIR
-                  value: /data
+                  value: /opt/minio/data
               image: ${OPENSHIFT_REGISTRY}/${MINIO_IMAGE_NAMESPACE}/${MINIO_IMAGE_NAME}:${MINIO_IMAGE_TAG}
               imagePullPolicy: Always
               name: ${NAME}
