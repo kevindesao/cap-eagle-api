@@ -57,7 +57,7 @@ factory.define(factoryName, Document, buildOptions => {
     , delete           : '["project-admin", "project-intake", "project-team", "project-system-admin"]'
 
     // Not editable
-    , documentFileName : faker.lorem.sentence() + "." + docTypeSettings.ext
+    , documentFileName : faker.lorem.sentence().replace(/\.$/g, '') + "." + docTypeSettings.ext
     , internalOriginalName : minioFileSystemFileName
     , internalURL      : "etl/the-project-name/" + minioFileSystemFileName
     , internalExt      : docTypeSettings.ext

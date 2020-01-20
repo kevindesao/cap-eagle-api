@@ -29,15 +29,23 @@ describe('Generate Test Data', () => {
             //console.log('generatedData: [' + generatedData + ']');
             let projects = generatedData.projects;
             console.log('projects: [' + projects + ']');
-  
+
+            let documents = generatedData.projectDocuments;
+
             // throw projects
             projects.map((project) => {
+              const projectDocuments = documents.filter(document => document[0].project == project._id);
               console.log('Project [id, name]: [' + project._id + ', ' + project.name + ']');
-              //console.log('        [shortName, dateAdded, dateUpdated]: [' + project.shortName + ', ' + project.dateAdded + ',' + project.dateUpdated + ']');
-              //console.log('        [projectLead, projectLeadEmail]: [' + project.projectLead + ', ' + project.projectLeadEmail + ']');
+              
+              projectDocuments.map((document) => {
+                  console.log('Document [id, project, documentFileName]: [' + document[0]._id + ', ' + document[0].project + ', ' + document[0].documentFileName + ']');
+                  // expect(1).toEqual(1);
+              });
+              
               expect(project._id).toEqual(jasmine.any(Object));
               expect(project.CELeadEmail).toEqual("eao.compliance@gov.bc.ca");
               //TODO:: Check the outputted deterministic data fields against the database model.  Some fields will always have randomness so tests will have to be designed around that.
+              
               done();
             });
           });
