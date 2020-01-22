@@ -1,6 +1,5 @@
 const factory = require('factory-girl').factory;
 const moment = require('moment');
-const mongTypes = require('mongoose').Types;
 const _ = require('lodash');
 const factory_helper = require('./factory_helper');
 const Organization = require('../../helpers/models/organization');
@@ -21,6 +20,7 @@ const companyTypes = [
 
 factory.define(factoryName, Organization, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
+  factory_helper.faker = faker;
 
   let author = factory_helper.generateFakePerson();
   let updator = faker.random.arrayElement([null, author, factory_helper.generateFakePerson()]);
@@ -31,26 +31,27 @@ factory.define(factoryName, Organization, buildOptions => {
   if (_.isEmpty(updator)) dateUpdated = null;
 
   let attrs = {
-      addedBy: author.idir
-    , description: faker.lorem.paragraph()
-    , name: companyName
-    , updatedBy: (_.isEmpty(updator)) ? null : updator.idir
-    , dateAdded: dateAdded
-    , dateUpdated: dateUpdated
-    , country: "Canada"
-    , postal: factory_helper.generateFakePostal()
-    , province: "BC"
-    , city: faker.random.arrayElement(factory_helper.getBcCities())
-    , address1: faker.address.streetAddress()
-    , address2: faker.address.secondaryAddress()
-    , companyType: faker.random.arrayElement(companyTypes)
-    , parentCompany: mongTypes.ObjectId()
-    , companyLegal: ""
-    , company: companyName
+      _id              : factory_helper.ObjectId()
+    , addedBy          : author.idir
+    , description      : faker.lorem.paragraph()
+    , name             : companyName
+    , updatedBy        : (_.isEmpty(updator)) ? null : updator.idir
+    , dateAdded        : dateAdded
+    , dateUpdated      : dateUpdated
+    , country          : "Canada"
+    , postal           : factory_helper.generateFakePostal()
+    , province         : "BC"
+    , city             : faker.random.arrayElement(factory_helper.getBcCities())
+    , address1         : faker.address.streetAddress()
+    , address2         : faker.address.secondaryAddress()
+    , companyType      : faker.random.arrayElement(companyTypes)
+    , parentCompany    : factory_helper.ObjectId()
+    , companyLegal     : ""
+    , company          : companyName
 
-    , read             : faker.random.arrayElement(["public", "sysadmin", ["public", "sysadmin"]])
-    , write            : faker.random.arrayElement(["public", "sysadmin", ["public", "sysadmin"]])
-    , delete           : faker.random.arrayElement(["public", "sysadmin", ["public", "sysadmin"]])
+    , read             : faker.random.arrayElement([["public"], ["sysadmin"], ["public", "sysadmin"]])
+    , write            : faker.random.arrayElement([["public"], ["sysadmin"], ["public", "sysadmin"]])
+    , delete           : faker.random.arrayElement([["public"], ["sysadmin"], ["public", "sysadmin"]])
   };
   return attrs;
 });

@@ -1,6 +1,5 @@
 const factory = require('factory-girl').factory;
 const moment = require('moment');
-const mongTypes = require('mongoose').Types;
 const factory_helper = require('./factory_helper');
 const Project = require('../../helpers/models/project');
 let faker = require('faker/locale/en');
@@ -138,6 +137,8 @@ const eaStatuses = [
 
 factory.define(factoryName, Project, buildOptions =>{
     if (buildOptions.faker) faker = buildOptions.faker;
+    factory_helper.faker = faker;
+
     let usersPool = (buildOptions.usersPool) ? buildOptions.usersPool : null;
     let organizationsPool = (buildOptions.orgsPool) ? buildOptions.orgsPool : null;
 
@@ -153,8 +154,9 @@ factory.define(factoryName, Project, buildOptions =>{
     let responsibleEpd = factory_helper.generateFakePerson();
 
     let attrs = {
+          _id                     : factory_helper.ObjectId()
         //Needed for default view
-          CEAAInvolvement         : faker.random.arrayElement(ceaaInvolvements)
+        , CEAAInvolvement         : faker.random.arrayElement(ceaaInvolvements)
         , CELead                  : "Compliance & Enforcement Branch"
         , CELeadEmail             : "eao.compliance@gov.bc.ca"
         , CELeadPhone             : factory_helper.generateEpicFormatPhoneNumber()
@@ -163,13 +165,13 @@ factory.define(factoryName, Project, buildOptions =>{
         , eacDecision             : faker.random.arrayElement(eacDecision)
         , location                : factory_helper.generateFakeLocationString()
         , name                    : projectName
-        , projectLeadId           : mongTypes.ObjectId()
+        , projectLeadId           : factory_helper.ObjectId()
         , projectLead             : projectLead.fullName
         , projectLeadEmail        : projectLead.emailAddress
         , projectLeadPhone        : projectLead.phoneNumber
-        , proponent               : mongTypes.ObjectId(factory_helper.getRandomExistingMongoId(organizationsPool))
+        , proponent               : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(organizationsPool))
         , region                  : faker.random.arrayElement(regions)
-        , responsibleEPDId        : mongTypes.ObjectId()
+        , responsibleEPDId        : factory_helper.ObjectId()
         , responsibleEPD          : responsibleEpd.fullName
         , responsibleEPDEmail     : responsibleEpd.emailAddress
         , responsibleEPDPhone     : responsibleEpd.phoneNumber
@@ -178,7 +180,7 @@ factory.define(factoryName, Project, buildOptions =>{
 
 
         //Everything else
-        , addedBy                 : mongTypes.ObjectId(factory_helper.getRandomExistingMongoId(usersPool))
+        , addedBy                 : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(usersPool))
         , build                   : faker.random.arrayElement(projectBuilds)
         , CEAALink                : "https://www.ceaa-acee.gc.ca/050/evaluations/proj/" + faker.random.number(99999) + "?culture=en-CA"
         , code                    : projectName.replace(/[^A-Z0-9]/ig, "-").replace(/(\-)(\1+)/, "-").toLowerCase()
@@ -209,7 +211,7 @@ factory.define(factoryName, Project, buildOptions =>{
         }
         , isTermsAgreed           : false
         , overallProgress         : 0
-        , primaryContact          : mongTypes.ObjectId(factory_helper.getRandomExistingMongoId(usersPool))
+        , primaryContact          : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(usersPool))
         , proMember               : "proponent-team"
         , provElecDist            : ""
         , sector                  : faker.random.arrayElement(sectors)
@@ -234,22 +236,22 @@ factory.define(factoryName, Project, buildOptions =>{
         // Contact references
         /////////////////////
         // Project Lead
-        , projLead                : mongTypes.ObjectId(factory_helper.getRandomExistingMongoId(usersPool))
+        , projLead                : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(usersPool))
 
         // Executive Project Director
-        , execProjectDirector     : mongTypes.ObjectId(factory_helper.getRandomExistingMongoId(usersPool))
+        , execProjectDirector     : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(usersPool))
 
         // Compliance & Enforcement Lead
-        , complianceLead          : mongTypes.ObjectId(factory_helper.getRandomExistingMongoId(usersPool))
+        , complianceLead          : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(usersPool))
         //////////////////////
 
         /////////////////////
         // PINs
         /////////////////////
-        , pins                    : mongTypes.ObjectId()
+        , pins                    : factory_helper.ObjectId()
         , pinsHistory             : {} 
 
-        , groups                  : mongTypes.ObjectId()
+        , groups                  : factory_helper.ObjectId()
 
         // Permissions
         , read                    : ["sysadmin", "staff", "project-proponent", "project-admin", "system-eao", "project-intake", "project-team", "project-system-admin", "public"]

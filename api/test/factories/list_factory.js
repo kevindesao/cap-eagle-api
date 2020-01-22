@@ -1,6 +1,5 @@
 const factory = require('factory-girl').factory;
 const List = require('../../helpers/models/list');
-//const _ = require('lodash');
 let faker = require('faker/locale/en');
 
 const factoryName = List.modelName;
@@ -22,6 +21,8 @@ for (let i=0; i<allListEntries; i++) {
 
 factory.define(factoryName, List, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
+  factory_helper.faker = faker;
+
   let randomListSample = {};
   let type = "";
   let name = "";
@@ -36,11 +37,12 @@ factory.define(factoryName, List, buildOptions => {
   }
 
   let attrs = {
-      name         : name
+      _id          : factory_helper.ObjectId()
+    , name         : name
     , type         : type
     , item         : null
-    , guid         : require('mongoose').Types.ObjectId()
-    , read         : '["public"]'
+    , guid         : factory_helper.ObjectId()
+    , read         : ["public"]
   };
   return attrs;
 });

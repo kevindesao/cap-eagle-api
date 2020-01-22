@@ -69,6 +69,7 @@ const vettingRoles = [
 
 factory.define(factoryName, CommentPeriod, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
+  factory_helper.faker = faker;
 
   // order dependent chain backwards in time so that the dates make sense
   let dateUpdated = moment(faker.date.past(10, new Date()));
@@ -80,7 +81,8 @@ factory.define(factoryName, CommentPeriod, buildOptions => {
   let dateAdded = dateStartedEst.clone().subtract(faker.random.number(10), 'days');
 
   let attrs = {
-      additionalText       : faker.lorem.paragraph()
+      _id                  : factory_helper.ObjectId()
+    , additionalText       : faker.lorem.paragraph()
     , ceaaAdditionalText   : faker.lorem.paragraph()
     , ceaaInformationLabel : faker.lorem.sentence()
     , ceaaRelatedDocuments : ""
@@ -100,16 +102,16 @@ factory.define(factoryName, CommentPeriod, buildOptions => {
     , isPublished          : faker.random.boolean()
     , isResolved           : faker.random.boolean()
     , isVetted             : faker.random.arrayElement(["", "false"])
-    , milestone            : require('mongoose').Types.ObjectId()
+    , milestone            : factory_helper.ObjectId()
     , openHouses           : ((faker.random.boolean() ? [] : [{"description": chance.animal() + " Hall\n" + faker.address.streetAddress() + ", " + faker.random.arrayElement(factory_helper.getBcCities()) + "\n" + dateOpenHoused.toString('dddd, MMMM ,yyyy') + "\n8:00 - 9:30pm","eventDate":dateOpenHoused}]))
     , periodType           : faker.random.arrayElement(["", "Public"])
-    , phase                : (faker.random.boolean() ? "" : require('mongoose').Types.ObjectId())
+    , phase                : (faker.random.boolean() ? "" : factory_helper.ObjectId())
     , phaseName            : faker.random.arrayElement(phaseNames)
-    , project              : require('mongoose').Types.ObjectId()
+    , project              : factory_helper.ObjectId()
     , publishedPercent     : faker.random.arrayElement(["", "0"])
     , rangeOption          : faker.random.arrayElement(["", "30", "45", "custom"])
     , rangeType            : faker.random.arrayElement(["", "custom", "start", "end"])
-    , relatedDocuments     : faker.random.arrayElement([[], [require('mongoose').Types.ObjectId(), require('mongoose').Types.ObjectId(), require('mongoose').Types.ObjectId()]])
+    , relatedDocuments     : faker.random.arrayElement([[], [factory_helper.ObjectId(), factory_helper.ObjectId(), factory_helper.ObjectId()]])
     , resolvedPercent      : faker.random.arrayElement(["", "0"])
     , userCan              : faker.random.arrayElement(userCanExamples)
     , vettedPercent        : faker.random.number(100)
@@ -117,9 +119,9 @@ factory.define(factoryName, CommentPeriod, buildOptions => {
     , commentIdCount       : faker.random.number(300)
 
     // Permissions
-    , read                : 'sysadmin'
-    , write               : 'sysadmin'
-    , delete              : 'sysadmin'
+    , read                 : faker.random.arrayElement([["public"], ["sysadmin"], ["public", "sysadmin"]])
+    , write                : faker.random.arrayElement([["public"], ["sysadmin"], ["public", "sysadmin"]])
+    , delete               : faker.random.arrayElement([["public"], ["sysadmin"], ["public", "sysadmin"]])
 
   };
 

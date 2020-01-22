@@ -7,6 +7,7 @@ const factoryName = InspectionElement.modelName;
 
 factory.define(factoryName, InspectionElement, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
+  factory_helper.faker = faker;
   
   let author = factory_helper.generateFakePerson();
   let updator = faker.random.arrayElement([null, author, factory_helper.generateFakePerson()]);
@@ -19,27 +20,28 @@ factory.define(factoryName, InspectionElement, buildOptions => {
   if (0 == updator.length) updatedDate = null;
 
   let attrs = {
+      _id              : factory_helper.ObjectId()
     // Tracking
-      _schemaName: "InspectionElement"
-    , _createdDate    : createdDate
-    , _updatedDate    : updatedDate
-    , _addedBy        : author.idir
-    , _updatedBy      : updator.idir
-    , _deletedBy      : deletor.idir
+    , _schemaName      : "InspectionElement"
+    , _createdDate     : createdDate
+    , _updatedDate     : updatedDate
+    , _addedBy         : author.idir
+    , _updatedBy       : updator.idir
+    , _deletedBy       : deletor.idir
 
     // Note: Default on tag property is purely for display only, they have no real effect on the model
     // This must be done in the code.
-    , read             : faker.random.arrayElement(['["inspector"]', '["sysadmin"]', '["inspector"], ["sysadmin"]'])
-    , write            : faker.random.arrayElement(['["inspector"]', '["sysadmin"]', '["inspector"], ["sysadmin"]'])
-    , delete           : faker.random.arrayElement(['["inspector"]', '["sysadmin"]', '["inspector"], ["sysadmin"]'])
+    , read             : faker.random.arrayElement([["inspector"], ["sysadmin"], ["inspector"], ["sysadmin"]])
+    , write            : faker.random.arrayElement([["inspector"], ["sysadmin"], ["inspector"], ["sysadmin"]])
+    , delete           : faker.random.arrayElement([["inspector"], ["sysadmin"], ["inspector"], ["sysadmin"]])
 
     // Meta
-    , title       : faker.lorem.sentence()
-    , requirement : faker.lorem.sentence()
-    , description : "\nLat: " + fakeBcLatLong.lat + ", Long:" + fakeBcLatLong.long + "\n"
-    , timestamp   : timestamp
+    , title            : faker.lorem.sentence()
+    , requirement      : faker.lorem.sentence()
+    , description      : "\nLat: " + fakeBcLatLong.lat + ", Long:" + fakeBcLatLong.long + "\n"
+    , timestamp        : timestamp
     // Items
-    , items: [require('mongoose').Types.ObjectId(), require('mongoose').Types.ObjectId(), require('mongoose').Types.ObjectId()],
+    , items            : [factory_helper.ObjectId(), factory_helper.ObjectId(), factory_helper.ObjectId()],
   };
   return attrs;
 });

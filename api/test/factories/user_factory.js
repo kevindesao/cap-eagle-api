@@ -7,15 +7,17 @@ let factoryName = User.modelName;
 
 factory.define(factoryName, User, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
+  factory_helper.faker = faker;
 
   let person = factory_helper.generateFakePerson();
   let attrs = {
-      firstName               : person.firstName
+      _id                     : factory_helper.ObjectId() 
+    , firstName               : person.firstName
     , middleName              : person.middleName
     , lastName                : person.lastName
     , displayName             : person.fullName
     , email                   : person.emailAddress
-    , org                     : require('mongoose').Types.ObjectId()
+    , org                     : factory_helper.ObjectId()
     , orgName                 : faker.company.companyName()
     , title                   : faker.name.title()
     , phoneNumber             : person.phoneNumber

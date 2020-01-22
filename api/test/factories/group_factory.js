@@ -7,6 +7,8 @@ const factoryName = Group.modelName;
 
 factory.define(factoryName, Group, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
+  factory_helper.faker = faker;
+  
   let usersPool = (buildOptions.usersPool) ? buildOptions.usersPool : [];
   let members = [];
   if (0 < usersPool.length) {
@@ -20,9 +22,10 @@ factory.define(factoryName, Group, buildOptions => {
   }
 
   let attrs = {
-      name                    : factory.seq('Group.name', (n) => `Group-${n}`)
-    , project                 : require('mongoose').Types.ObjectId()
-    , members                 : members
+      _id              : factory_helper.ObjectId()
+    , name             : factory.seq('Group.name', (n) => `Group-${n}`)
+    , project          : factory_helper.ObjectId()
+    , members          : members
 
     , read             : faker.random.arrayElement(["public", "sysadmin", ["public", "sysadmin"]])
     , write            : faker.random.arrayElement(["public", "sysadmin", ["public", "sysadmin"]])

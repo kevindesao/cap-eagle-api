@@ -13,6 +13,7 @@ const inspectionItemTypes = [
 
 factory.define(factoryName, InspectionItem, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
+  factory_helper.faker = faker;
   
   let author = factory_helper.generateFakePerson();
   let updator = faker.random.arrayElement([null, author, factory_helper.generateFakePerson()]);
@@ -22,26 +23,27 @@ factory.define(factoryName, InspectionItem, buildOptions => {
 
   let fakeBcLatLong = factory_helper.generateFakeBcLatLong();
   let attrs = {
+      _id              : factory_helper.ObjectId()
     // Tracking
-      _schemaName: "InspectionItem"
-    , _createdDate    : createdDate
-    , _updatedDate    : updatedDate
-    , _addedBy        : author.idir
-    , _updatedBy      : updator.idir
-    , _deletedBy      : deletor.idir
+    , _schemaName      : "InspectionItem"
+    , _createdDate     : createdDate
+    , _updatedDate     : updatedDate
+    , _addedBy         : author.idir
+    , _updatedBy       : updator.idir
+    , _deletedBy       : deletor.idir
 
     // Note: Default on tag property is purely for display only, they have no real effect on the model
     // This must be done in the code.
-    , read             : faker.random.arrayElement(['["inspector"]', '["sysadmin"]', '["inspector"], ["sysadmin"]'])
-    , write            : faker.random.arrayElement(['["inspector"]', '["sysadmin"]', '["inspector"], ["sysadmin"]'])
-    , delete           : faker.random.arrayElement(['["inspector"]', '["sysadmin"]', '["inspector"], ["sysadmin"]'])
+    , read             : faker.random.arrayElement([["inspector"], ["sysadmin"], ["inspector"], ["sysadmin"]])
+    , write            : faker.random.arrayElement([["inspector"], ["sysadmin"], ["inspector"], ["sysadmin"]])
+    , delete           : faker.random.arrayElement([["inspector"], ["sysadmin"], ["inspector"], ["sysadmin"]])
 
     // Not editable
-    , type : faker.random.arrayElement(inspectionItemTypes)
-    , uri  : ""
-    , geo  : fakeBcLatLong.geo
-    , caption : faker.lorem.sentence()
-    , timestamp : itemDate
+    , type             : faker.random.arrayElement(inspectionItemTypes)
+    , uri              : ""
+    , geo              : fakeBcLatLong.geo
+    , caption          : faker.lorem.sentence()
+    , timestamp        : itemDate
 
     // Minio handler
     , internalURL      : ""
@@ -69,7 +71,7 @@ factory.define(factoryName, InspectionItem, buildOptions => {
     default:
       throw "Undedermined inspection item factory type: '" + attrs.type + "'"
   }
-  attrs.internalURL = require('mongoose').Types.ObjectId() + "/" + require('mongoose').Types.ObjectId() + "." + attrs.internalExt;
+  attrs.internalURL = factory_helper.ObjectId() + "/" + factory_helper.ObjectId() + "." + attrs.internalExt;
 
   return attrs;
 });

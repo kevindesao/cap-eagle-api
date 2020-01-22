@@ -7,10 +7,12 @@ const factoryName = Pin.modelName;
 
 factory.define(factoryName, Pin, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
+  factory_helper.faker = faker;
 
   let pinNum = factory.seq('Pin.number', (n) => `${n}`);
   let attrs = {
-      name               : "pin-" + pinNum
+      _id                : factory_helper.ObjectId()
+    , name               : "pin-" + pinNum
     , number             : pinNum
     , address1           : faker.address.streetAddress()
     , address2           : faker.address.secondaryAddress()

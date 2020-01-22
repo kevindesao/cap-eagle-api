@@ -1,5 +1,6 @@
 const canada = require('canada');
 const _ = require('lodash');
+const bsonObjectId = require('BSON').ObjectId;
 const mongTypes = require('mongoose').Types;
 let faker = require('faker/locale/en');
 
@@ -40,7 +41,7 @@ function generateEpicFormatPhoneNumber() {
 }
 
 function getRandomExistingMongoId(objectIdsPool) {
-    return  (objectIdsPool) ? mongTypes.ObjectId(faker.random.arrayElement(objectIdsPool)._id) : mongTypes.ObjectId();
+    return  (objectIdsPool) ? generateSeededObjectId(faker.random.arrayElement(objectIdsPool)._id) : generateSeededObjectId();
 }
 
 function loadBcCities() {
@@ -103,6 +104,25 @@ function generateFakeLocationString() {
     return location;
 }
 
+function hexaDecimal(count) {
+    if (typeof count === "undefined") {
+      count = 1;
+    }
+
+    var wholeString = "";
+    for(var i = 0; i < count; i++) {
+      wholeString += faker.random.arrayElement(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "A", "B", "C", "D", "E", "F"]);
+    }
+
+    return wholeString;
+}
+
+function generateSeededObjectId(value) {
+    let oid = (typeof value === "undefined") ? hexaDecimal(24).toLocaleLowerCase() : value;
+    if (!bsonObjectId.isValid(oid)) throw "Invalid attempt to generate an ObjectID: '" + oid + "'"
+    return mongTypes.ObjectId(oid);
+}
+
 exports.faker = faker;
 exports.getBcCities = getBcCities;
 exports.generateFakePostal = generateFakePostal;
@@ -111,3 +131,4 @@ exports.generateFakePerson = generateFakePerson;
 exports.getRandomExistingMongoId = getRandomExistingMongoId;
 exports.generateFakeLocationString = generateFakeLocationString;
 exports.generateEpicFormatPhoneNumber = generateEpicFormatPhoneNumber;
+exports.ObjectId = generateSeededObjectId;

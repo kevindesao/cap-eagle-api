@@ -7,6 +7,7 @@ const factoryName = Inspection.modelName;
 
 factory.define(factoryName, Inspection, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
+  factory_helper.faker = faker;
   
   let author = factory_helper.generateFakePerson();
   let updator = faker.random.arrayElement([null, author, factory_helper.generateFakePerson()]);
@@ -19,30 +20,31 @@ factory.define(factoryName, Inspection, buildOptions => {
   if (0 == updator.length) updatedDate = null;
 
   let attrs = {
+      _id              : factory_helper.ObjectId()
     // Tracking
-      _schemaName: "Inspection"
-    , _createdDate    : createdDate
-    , _updatedDate    : updatedDate
-    , _addedBy        : author.idir
-    , _updatedBy      : updator.idir
-    , _deletedBy      : deletor.idir
+    , _schemaName      : "Inspection"
+    , _createdDate     : createdDate
+    , _updatedDate     : updatedDate
+    , _addedBy         : author.idir
+    , _updatedBy       : updator.idir
+    , _deletedBy       : deletor.idir
 
     // Note: Default on tag property is purely for display only, they have no real effect on the model
     // This must be done in the code.
-    , read             : faker.random.arrayElement(['["inspector"]', '["sysadmin"]', '["inspector"], ["sysadmin"]'])
-    , write            : faker.random.arrayElement(['["inspector"]', '["sysadmin"]', '["inspector"], ["sysadmin"]'])
-    , delete           : faker.random.arrayElement(['["inspector"]', '["sysadmin"]', '["inspector"], ["sysadmin"]'])
+    , read             : faker.random.arrayElement([["inspector"], ["sysadmin"], ["inspector"], ["sysadmin"]])
+    , write            : faker.random.arrayElement([["inspector"], ["sysadmin"], ["inspector"], ["sysadmin"]])
+    , delete           : faker.random.arrayElement([["inspector"], ["sysadmin"], ["inspector"], ["sysadmin"]])
 
     // Not editable
-    , name      : author.fullName
-    , label     : faker.lorem.sentence()
-    , case      : faker.lorem.sentence()
-    , email     : author.emailAddress
-    , startDate : startDate
-    , endDate   : endDate
-    , elements  : [require('mongoose').Types.ObjectId(), require('mongoose').Types.ObjectId(), require('mongoose').Types.ObjectId()]
+    , name             : author.fullName
+    , label            : faker.lorem.sentence()
+    , case             : faker.lorem.sentence()
+    , email            : author.emailAddress
+    , startDate        : startDate
+    , endDate          : endDate
+    , elements         : [factory_helper.ObjectId(), factory_helper.ObjectId(), factory_helper.ObjectId()]
     , customProjectName: ''
-    , project   : require('mongoose').Types.ObjectId()
+    , project          : factory_helper.ObjectId()
   };
   return attrs;
 });

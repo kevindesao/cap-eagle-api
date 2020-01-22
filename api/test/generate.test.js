@@ -38,7 +38,9 @@ describe('Generate Test Data', () => {
               console.log('Project [id, name]: [' + project._id + ', ' + project.name + ']');
               
               projectDocuments.map((document) => {
-                  console.log('Document [id, project, documentFileName]: [' + document[0]._id + ', ' + document[0].project + ', ' + document[0].documentFileName + ']');
+                console.log('document: [' + document[0] + ']');
+
+                console.log('Document [id, project, documentFileName]: [' + document[0]._id + ', ' + document[0].project + ', ' + document[0].documentFileName + ']');
                   // expect(1).toEqual(1);
               });
               

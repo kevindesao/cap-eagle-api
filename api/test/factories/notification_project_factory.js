@@ -63,12 +63,14 @@ const sectors = [
 
 factory.define('notificationProject', NotificationProject, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
+  factory_helper.faker = faker;
 
   let notificationProject = faker.company.companyName() + " " + faker.random.arrayElement(notificationProjectNameSuffixes);
   let decisionDate = moment(faker.date.past(10, new Date()));
   let startDate = decisionDate.clone().subtract(faker.random.number(45), 'days');
   let attrs = {
-      name                    : faker.name.prefix()
+      _id                     : factory_helper.ObjectId()
+    , name                    : faker.name.prefix()
     , type                    : faker.random.arrayElement(notificationProjectTypes)
     , subType                 : faker.random.arrayElement(sectors)
     , proponentName           : notificationProject
@@ -80,10 +82,10 @@ factory.define('notificationProject', NotificationProject, buildOptions => {
     , notificationDecision    : ''
     
     , description             : faker.lorem.paragraph()
-    , centroid: factory_helper.generateFakeBcLatLong().centroid
-    , read                    : faker.random.arrayElement(['["public"]', '["sysadmin"]'])
-    , write                   : faker.random.arrayElement(['["public"]', '["sysadmin"]'])
-    , delete                  : faker.random.arrayElement(['["public"]', '["sysadmin"]'])
+    , centroid                : factory_helper.generateFakeBcLatLong().centroid
+    , read                    : faker.random.arrayElement([["public"], ["sysadmin"]])
+    , write                   : faker.random.arrayElement([["public"], ["sysadmin"]])
+    , delete                  : faker.random.arrayElement([["public"], ["sysadmin"]])
   }
   return attrs;
 });

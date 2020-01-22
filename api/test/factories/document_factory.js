@@ -24,7 +24,8 @@ const docProps = [
 
 factory.define(factoryName, Document, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
-  
+  factory_helper.faker = faker;
+
   let author = factory_helper.generateFakePerson();
   let updator = faker.random.arrayElement([null, author, factory_helper.generateFakePerson()]);
   let deletor = faker.random.arrayElement([null, author, updator, factory_helper.generateFakePerson()]);
@@ -40,21 +41,23 @@ factory.define(factoryName, Document, buildOptions => {
   let minioFileSystemFileName = faker.random.number({min:999999999999, max:10000000000000}) + "_" + (faker.random.alphaNumeric(60)).toLowerCase() + "." + docTypeSettings.ext;
 
   let attrs = {
-      project         : require('mongoose').Types.ObjectId()
+      _id              : factory_helper.ObjectId()
+
+    , project          : factory_helper.ObjectId()
 
     // Tracking
-    , _comment        : require('mongoose').Types.ObjectId()
-    , _createdDate    : createdDate
-    , _updatedDate    : updatedDate
-    , _addedBy        : author.idir
-    , _updatedBy      : (null == updator) ? null : updator.idir
-    , _deletedBy      : (null == deletor) ? null : deletor.idir
+    , _comment         : factory_helper.ObjectId()
+    , _createdDate     : createdDate
+    , _updatedDate     : updatedDate
+    , _addedBy         : author.idir
+    , _updatedBy       : (null == updator) ? null : updator.idir
+    , _deletedBy       : (null == deletor) ? null : deletor.idir
 
     // Note: Default on tag property is purely for display only, they have no real effect on the model
     // This must be done in the code.
-    , read             : '["project-admin", "project-intake", "project-team", "project-system-admin"]'
-    , write            : '["project-admin", "project-intake", "project-team", "project-system-admin"]'
-    , delete           : '["project-admin", "project-intake", "project-team", "project-system-admin"]'
+    , read             : ["public", "project-admin", "project-intake", "project-team", "project-system-admin"]
+    , write            : ["project-admin", "project-intake", "project-team", "project-system-admin"]
+    , delete           : ["project-admin", "project-intake", "project-team", "project-system-admin"]
 
     // Not editable
     , documentFileName : faker.lorem.sentence().replace(/\.$/g, '') + "." + docTypeSettings.ext
@@ -70,14 +73,14 @@ factory.define(factoryName, Document, buildOptions => {
 
     // Pre-filled with documentFileName in the UI
     , displayName      : displayName
-    , milestone        : faker.random.arrayElement([null, require('mongoose').Types.ObjectId()])
+    , milestone        : faker.random.arrayElement([null, factory_helper.ObjectId()])
     , dateUploaded     : dateUploaded
     , datePosted       : datePosted
-    , type             : require('mongoose').Types.ObjectId()
+    , type             : factory_helper.ObjectId()
     , description      : faker.lorem.sentence()
     , documentAuthor   : author.fullName
-    , documentAuthorType   : require('mongoose').Types.ObjectId() // list
-    , projectPhase     : require('mongoose').Types.ObjectId()
+    , documentAuthorType   : factory_helper.ObjectId() // list
+    , projectPhase     : factory_helper.ObjectId()
     , eaoStatus        : faker.random.arrayElement(["", "Published", "Rejected"])
     , keywords         : ""
 
