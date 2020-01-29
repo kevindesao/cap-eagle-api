@@ -1,6 +1,6 @@
 const factory = require('factory-girl').factory;
-const moment = require('moment');
 const factory_helper = require('./factory_helper');
+const moment = require('moment');
 const RecentActivity = require('../../helpers/models/recentActivity');
 let faker = require('faker/locale/en');
 
@@ -11,10 +11,13 @@ factory.define(factoryName, RecentActivity, buildOptions => {
   factory_helper.faker = faker;
 
   let usersPool = (buildOptions.usersPool) ? buildOptions.usersPool : null;
+  let listsPool = (buildOptions.listsPool) ? buildOptions.listsPool : null;
+  const headlineTypes = listsPool.filter(listEntry => "headlineType" === listEntry.type);
   
   let raType = faker.random.arrayElement(["News", "Public Comment Period"]);
   let dateUpdated = moment(faker.date.past(10, new Date()));
   let dateAdded = dateUpdated.clone().subtract(faker.random.number(45), 'days');
+  
   let attrs = {
       _id                 : factory_helper.ObjectId()
     , dateUpdated         : dateUpdated
@@ -32,12 +35,12 @@ factory.define(factoryName, RecentActivity, buildOptions => {
     , active              : faker.random.boolean()
     , project             : factory_helper.ObjectId()
     , content             : faker.lorem.paragraph()
-    , headline            : faker.lorem.sentence()
+    , headline            : factory_helper.getRandomExistingListElementName(headlineTypes)
 
     // Permissions
-    , read                : faker.random.arrayElement([["public"], ["sysadmin"]])
-    , write               : faker.random.arrayElement([["public"], ["sysadmin"]])
-    , delete              : faker.random.arrayElement([["public"], ["sysadmin"]])
+    , read                : faker.random.arrayElement(["public", "sysadmin"])
+    , write               : faker.random.arrayElement(["public", "sysadmin"])
+    , delete              : faker.random.arrayElement(["public", "sysadmin"])
   };
   return attrs;
 });

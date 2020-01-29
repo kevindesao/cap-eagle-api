@@ -11,14 +11,16 @@ require('../helpers/models/audit');
 const factory = require('factory-girl').factory;
 const factory_helper = require('./factories/factory_helper');
 //the following include statements populate the 'factories' collection of factory-girl's singleton factory object
+const listFactory = require("./factories/list_factory");
 const auditFactory = require("./factories/audit_factory");
 const userFactory = require("./factories/user_factory");
 const organizationFactory = require("./factories/organization_factory");
+const groupFactory = require("./factories/group_factory");
 const projectFactory = require("./factories/project_factory");
 const commentPeriodFactory = require("./factories/comment_period_factory");
 const commentFactory = require("./factories/comment_factory");
 const documentFactory = require("./factories/document_factory");
-const groupFactory = require("./factories/group_factory");
+const recentActivityFactory = require("./factories/recent_activity_factory");
 require('../helpers/models/user');
 require('../helpers/models/project');
 let ft = require('./factory_template');
@@ -38,6 +40,7 @@ let gc = generatorCeilings;
 
 const uniqueStaticSeeds = {
     audit: 1
+  , list: 29
   , guaranteedUser: 234
   , extraUser: 106
   , project: 345
@@ -47,14 +50,17 @@ const uniqueStaticSeeds = {
   , comment: 102
   , group: 924
   , organization: 436
+  , recentActivities: 677
 };
 const uss = uniqueStaticSeeds;
 
+const groupTemplate = new ft.FactoryTemplate(groupFactory.name, generateGroupSetForProject, gc.groupsPerProject, uss.group);
 const commentPeriodTemplate = new ft.FactoryTemplate(commentPeriodFactory.name, generateCommentPeriodSetForProject, gc.commentPeriodsPerProject, uss.commentPeriod);
 const commentTemplate = new ft.FactoryTemplate(commentFactory.name, generateCommentSetForCommentPeriod, gc.commentsPerCommentPeriod, uss.comment);
 const projectDocumentTemplate = new ft.FactoryTemplate(documentFactory.name, generateDocumentSetForProject, gc.documentsPerProject, uss.projectDocument);
 const commentPeriodDocumentTemplate = new ft.FactoryTemplate(documentFactory.name, generateDocumentSetForCommentPeriod, gc.documentsPerCommentPeriod, uss.commentPeriodDocument);
-const groupTemplate = new ft.FactoryTemplate(groupFactory.name, generateGroupSetForProject, gc.groupsPerProject, uss.group);
+const documentRecentActivitiesTemplate = new ft.FactoryTemplate(recentActivityFactory.name, generateRecentActivitiesSetForProjectDocument, 1, uss.recentActivities);
+const commentPeriodRecentActivitiesTemplate = new ft.FactoryTemplate(recentActivityFactory.name, generateRecentActivitiesSetForCommentPeriod, 1, uss.recentActivities);
 
 // Data generation violates the single purpose principle on purpose.
 // It generates data, saves model to db (mem or real), and outputs the data we generated
@@ -63,47 +69,63 @@ const groupTemplate = new ft.FactoryTemplate(groupFactory.name, generateGroupSet
 function generateEntireDatabase(usersData) {
   // generate an Audit object needed by the app models, a mix of constant (test entry points) and random Users, and a number of Projects
   return generateProjects(usersData)
-  .then(generatedData => { 
+  .then(pipeline => { 
     // foreach Project, generate the Groups relating to it
     return new Promise(function(resolve, reject) {
-      generateChildSets(generatedData.projects, generatedData.users, groupTemplate).then(groups => {
-        generatedData.groups = groups;
-        resolve(generatedData);
+      generateChildSets(pipeline.projects, pipeline.users, pipeline.lists, groupTemplate).then(groups => {
+        pipeline.groups = groups;
+        resolve(pipeline);
       });
     });
   })
-  .then(generatedData => { 
+  .then(pipeline => { 
     // foreach Project, generate the Comment Periods relating to it
     return new Promise(function(resolve, reject) {
-      generateChildSets(generatedData.projects, generatedData.users, commentPeriodTemplate).then(commentPeriods => {
-        generatedData.commentPeriods = commentPeriods;
-        resolve(generatedData);
+      generateChildSets(pipeline.projects, pipeline.users, pipeline.lists, commentPeriodTemplate).then(commentPeriods => {
+        pipeline.commentPeriods = commentPeriods;
+        resolve(pipeline);
       });
     });
   })
-  .then(generatedData => { 
+  .then(pipeline => { 
     // foreach Comment Period, generate the Comments relating to it
     return new Promise(function(resolve, reject) {
-      generateChildSets(generatedData.commentPeriods, generatedData.users, commentTemplate).then(comments => {
-        generatedData.comments = comments;
-        resolve(generatedData);
+      generateChildSets(pipeline.commentPeriods, pipeline.users, pipeline.lists, commentTemplate).then(comments => {
+        pipeline.comments = comments;
+        resolve(pipeline);
       });
     });
   })
-  .then(generatedData => { 
+  .then(pipeline => { 
     // foreach Comment Period, generate the Documents relating to it
     return new Promise(function(resolve, reject) {
-      generateChildSets(generatedData.commentPeriods, generatedData.users, commentPeriodDocumentTemplate).then(commentPeriodDocuments => {
-        generatedData.commentPeriodDocuments = commentPeriodDocuments;
-        resolve(generatedData);
+      generateChildSets(pipeline.commentPeriods, pipeline.users, pipeline.lists, commentPeriodDocumentTemplate).then(commentPeriodDocuments => {
+        pipeline.commentPeriodDocuments = commentPeriodDocuments;
+        resolve(pipeline);
       });
     });
-  }).then(generatedData => { 
+  }).then(pipeline => { 
     // foreach Project, generate the Documents relating to it
     return new Promise(function(resolve, reject) {
-      generateChildSets(generatedData.projects, generatedData.users, projectDocumentTemplate).then(projectDocuments => {
-        generatedData.projectDocuments = projectDocuments;
-        resolve(generatedData);
+      generateChildSets(pipeline.projects, pipeline.users, pipeline.lists, projectDocumentTemplate).then(projectDocuments => {
+        pipeline.projectDocuments = projectDocuments;
+        resolve(pipeline);
+      });
+    });
+  }).then(pipeline => { 
+    // foreach Project Document, generate a possible Recent Actvity relating to it
+    return new Promise(function(resolve, reject) {
+      generateChildSets(pipeline.projectDocuments, pipeline.users, pipeline.lists, documentRecentActivitiesTemplate).then(recentActivities => {
+        pipeline.projectDocumentRecentActivities = recentActivities;
+        resolve(pipeline);
+      });
+    });
+  }).then(pipeline => { 
+    // foreach Comment Period, generate a possible Recent Actvity relating to it
+    return new Promise(function(resolve, reject) {
+      generateChildSetsUsingPipeline(pipeline.commentPeriods, pipeline, commentPeriodRecentActivitiesTemplate).then(recentActivities => {
+        pipeline.commentPeriodRecentActivities = recentActivities;
+        resolve(pipeline);
       });
     });
   });
@@ -159,6 +181,27 @@ function generateDocumentSetForCommentPeriod(factoryKey, commentPeriod, buildOpt
   });
 };
 
+function generateRecentActivitiesSetForProjectDocument(factoryKey, projectDocument, buildOptions, commentPeriodDocumentsToGen) {
+  return new Promise(function(resolve, reject) {
+  let customDocumentSettings = { documentUrl: "/api/document/" + projectDocument._id + "/fetch", contentUrl: "", project: factory_helper.ObjectId(projectDocument.project), pcp: null };  // note that the document._comment field actually refers to a commentPeriod id
+    factory.createMany(factoryKey, commentPeriodDocumentsToGen, customDocumentSettings, buildOptions).then(documents => {
+      resolve(documents);
+    });
+  });
+};
+
+function generateRecentActivitiesSetForCommentPeriod(factoryKey, commentPeriod, buildOptions, commentPeriodDocumentsToGen) {
+  return new Promise(function(resolve, reject) {
+  let projectsPool = (buildOptions.pipeline) ? buildOptions.pipeline.projects : null;
+  const parentProject = projectsPool.filter(project => commentPeriod.project == project.id);
+  let contentUrl = (1 == parentProject.length) ? "/p/" + parentProject.shortName + "/commentperiod/" + commentPeriod._id + "" : "";
+  let customDocumentSettings = { documentUrl: "", contentUrl: contentUrl, project: null, pcp: factory_helper.ObjectId(commentPeriod._id) };  // note that the document._comment field actually refers to a commentPeriod id
+    factory.createMany(factoryKey, commentPeriodDocumentsToGen, customDocumentSettings, buildOptions).then(documents => {
+      resolve(documents);
+    });
+  });
+};
+
 function generateProjects(usersData) {
   let projectGenerator = new Promise(function(resolve, reject) {
     test_helper.dataGenerationSettings.then(genSettings => {
@@ -166,40 +209,44 @@ function generateProjects(usersData) {
       let numOfProjsGenned = 0;
       if (isNaN(numOfProjsToGen)) numOfProjsToGen = test_helper.defaultNumberOfProjects;
       console.log('Generating ' + numOfProjsToGen + ' projects.');
-      
+
       factory.create(auditFactory.name, {}, {faker: getSeeded(genSettings.generate_consistent_data, uss.audit)}).then(audit =>{
-        factory.createMany(userFactory.name, usersData, {faker: getSeeded(genSettings.generate_consistent_data, uss.guaranteedUser)}).then(guaranteedUsersArray => {
-          factory.createMany(userFactory.name, generatorCeilings.extraUsers, {}, {faker: getSeeded(genSettings.generate_consistent_data, uss.extraUser)}).then(extraUsersArray => {
-            let users = guaranteedUsersArray.concat(extraUsersArray);       
-            factory.createMany(organizationFactory.name, generatorCeilings.organizations, {}, {faker: getSeeded(genSettings.generate_consistent_data, uss.organization)}).then(orgsArray => {
-              factory.createMany(projectFactory.name, numOfProjsToGen, {}, {faker: getSeeded(genSettings.generate_consistent_data, uss.project), usersPool: users, orgsPool: orgsArray}).then(projectsArray => {
-                numOfProjsGenned = projectsArray.length;
-                let genData = new gd.GeneratedData();
-                genData.audit = audit;
-                genData.users = users;
-                genData.organizations = orgsArray;
-                genData.projects = projectsArray;
-                resolve(genData);
-              }).catch(error => {
-                console.log("Project error:" + error);
-                reject(error);
-              }).finally(function(){
-                console.log('Generated ' + numOfProjsGenned + ' projects.');
+        factory.createMany(listFactory.name, listFactory.allLists, {faker: getSeeded(genSettings.generate_consistent_data, uss.list)}).then(lists => {
+          factory.createMany(organizationFactory.name, generatorCeilings.organizations, {}, {faker: getSeeded(genSettings.generate_consistent_data, uss.organization)}).then(orgsArray => {
+            factory.createMany(userFactory.name, usersData, {faker: getSeeded(genSettings.generate_consistent_data, uss.guaranteedUser), orgsPool: orgsArray}).then(guaranteedUsersArray => {
+                factory.createMany(userFactory.name, generatorCeilings.extraUsers, {}, {faker: getSeeded(genSettings.generate_consistent_data, uss.extraUser), orgsPool: orgsArray}).then(extraUsersArray => {
+                let users = guaranteedUsersArray.concat(extraUsersArray);
+                  factory.createMany(projectFactory.name, numOfProjsToGen, {}, {faker: getSeeded(genSettings.generate_consistent_data, uss.project), usersPool: users, listsPool: lists, orgsPool: orgsArray}).then(projectsArray => {
+                    numOfProjsGenned = projectsArray.length;
+                    let pipeline = new gd.GeneratedData();
+                    pipeline.audit = audit;
+                    pipeline.lists = lists;
+                    pipeline.users = users;
+                    pipeline.organizations = orgsArray;
+                    pipeline.projects = projectsArray;
+                    resolve(pipeline);
+                }).catch(error => {
+                    console.log("Project error:" + error);
+                    reject(error);
+                }).finally(function(){
+                    console.log('Generated ' + numOfProjsGenned + ' projects.');
+                });
               });
             });
           });
         });
       });
     });
-  })
+  });
   return projectGenerator;
 };
 
-function generateChildSets(parents, usersPool, factoryTemplate) {
+// lightweight for when access to previously generated users and lists is only required
+function generateChildSets(parents, usersPool, listsPool, factoryTemplate) {
   if (0 == parents.length) return new Promise(function(resolve, reject) { resolve([]); });
   return new Promise(function(resolve, reject) {
     test_helper.dataGenerationSettings.then(genSettings => {
-      let buildOptions = {faker: getSeeded(genSettings.generate_consistent_data, factoryTemplate.seed), usersPool: usersPool}
+      let buildOptions = {faker: getSeeded(genSettings.generate_consistent_data, factoryTemplate.seed), usersPool: usersPool, listsPool: listsPool}
       let childGenerationPromises = parents.map(parent => {
         return generateChildSet(parent, buildOptions, factoryTemplate);
       });
@@ -211,7 +258,26 @@ function generateChildSets(parents, usersPool, factoryTemplate) {
   }).finally(function(){
     console.log("Generated all " + factoryTemplate.factoryKey + " sets.");
   });
-}
+};
+
+// heavyweight for when full access to previously generated pipeline data is required (ie. we need data from the parent's parent)
+function generateChildSetsUsingPipeline(parents, pipeline, factoryTemplate) {
+  if (0 == parents.length) return new Promise(function(resolve, reject) { resolve([]); });
+  return new Promise(function(resolve, reject) {
+    test_helper.dataGenerationSettings.then(genSettings => {
+      let buildOptions = {faker: getSeeded(genSettings.generate_consistent_data, factoryTemplate.seed), pipeline: pipeline}
+      let childGenerationPromises = parents.map(parent => {
+      return generateChildSet(parent, buildOptions, factoryTemplate);
+    });
+      resolve(Promise.all(childGenerationPromises));
+    });
+  }).catch(error => {
+    console.log(factoryTemplate.factoryKey + "s error:" + error);
+    reject(error);
+  }).finally(function(){
+    console.log("Generated all " + factoryTemplate.factoryKey + " sets.");
+  });
+};
 
 function generateChildSet(parent, buildOptions, factoryTemplate) {
   return new Promise(function(resolve, reject) {
@@ -234,7 +300,7 @@ function generateChildSet(parent, buildOptions, factoryTemplate) {
 
 function getSeeded(setConstant, seed) {
   return (setConstant) ? (require('faker/locale/en')).seed(seed) : (require('faker/locale/en')).seed();
-}
+};
 
 exports.uss = uniqueStaticSeeds; // external shorthand alias for brevity
 exports.generateEntireDatabase = generateEntireDatabase;

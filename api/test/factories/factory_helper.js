@@ -44,6 +44,10 @@ function getRandomExistingMongoId(objectIdsPool) {
     return  (objectIdsPool) ? generateSeededObjectId(faker.random.arrayElement(objectIdsPool)._id) : generateSeededObjectId();
 }
 
+function getRandomExistingListElementName(objectIdsPool) {
+    return  (objectIdsPool) ? faker.random.arrayElement(objectIdsPool).name : "";
+}
+
 function loadBcCities() {
     if (0 < bcCities.length) return;
     for (let i = 0; i < canada.cities.length; i++) {
@@ -129,6 +133,7 @@ exports.generateFakePostal = generateFakePostal;
 exports.generateFakeBcLatLong = generateFakeBcLatLong;
 exports.generateFakePerson = generateFakePerson;
 exports.getRandomExistingMongoId = getRandomExistingMongoId;
+exports.getRandomExistingListElementName = getRandomExistingListElementName;
 exports.generateFakeLocationString = generateFakeLocationString;
 exports.generateEpicFormatPhoneNumber = generateEpicFormatPhoneNumber;
 exports.ObjectId = generateSeededObjectId;

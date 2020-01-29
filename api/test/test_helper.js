@@ -192,7 +192,7 @@ async function checkMigrations(callback) {
     dbo.listCollections({name: mcn}).toArray(function(err, collInfos) {
       if (0 == collInfos.length) {
         dbo.createCollection(mcn, function(err, res) {
-          if (err) console.error(err);
+          if (err) if (0 == err.message.includes("Cannot use a session that has ended")) console.error(err);
           console.log(mcn + " collection created");
           db.close();
           callback(runMigrations);

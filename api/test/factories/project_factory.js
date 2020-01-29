@@ -74,18 +74,6 @@ const currentPhaseNames = [
     , "Scope"
 ];
 
-const regions = [
-    "Cariboo"
-    , "Kootenay"
-    , "Lower Mainland"
-    , "Okanagan"
-    , "Omineca"
-    , "Peace"
-    , "Skeena"
-    , "Thompson-Nicola"
-    , "Vancouver Island"
-];
-
 const federalElectoralDistricts = [
     "Delta"
     , "Kootenay-Columbia"
@@ -141,6 +129,8 @@ factory.define(factoryName, Project, buildOptions =>{
 
     let usersPool = (buildOptions.usersPool) ? buildOptions.usersPool : null;
     let organizationsPool = (buildOptions.orgsPool) ? buildOptions.orgsPool : null;
+    let listsPool = (buildOptions.listsPool) ? buildOptions.listsPool : null;
+    const regions = listsPool.filter(listEntry => "region" === listEntry.type);
 
     let projectName = faker.company.companyName() + " " + faker.random.arrayElement(projectNameSuffixes);
     let decisionDate = moment(faker.date.past(10, new Date()));
@@ -170,7 +160,7 @@ factory.define(factoryName, Project, buildOptions =>{
         , projectLeadEmail        : projectLead.emailAddress
         , projectLeadPhone        : projectLead.phoneNumber
         , proponent               : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(organizationsPool))
-        , region                  : faker.random.arrayElement(regions)
+        , region                  : factory_helper.getRandomExistingListElementName(regions)
         , responsibleEPDId        : factory_helper.ObjectId()
         , responsibleEPD          : responsibleEpd.fullName
         , responsibleEPDEmail     : responsibleEpd.emailAddress

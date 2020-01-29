@@ -26,6 +26,12 @@ factory.define(factoryName, Document, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
   factory_helper.faker = faker;
 
+  let listsPool = (buildOptions.listsPool) ? buildOptions.listsPool : null;
+  const doctypes = listsPool.filter(listEntry => "doctype" === listEntry.type);
+  const authors = listsPool.filter(listEntry => "author" === listEntry.type);
+  const labels = listsPool.filter(listEntry => "label" === listEntry.type);
+  const projectPhases = listsPool.filter(listEntry => "projectPhase" === listEntry.type);
+
   let author = factory_helper.generateFakePerson();
   let updator = faker.random.arrayElement([null, author, factory_helper.generateFakePerson()]);
   let deletor = faker.random.arrayElement([null, author, updator, factory_helper.generateFakePerson()]);
@@ -39,6 +45,15 @@ factory.define(factoryName, Document, buildOptions => {
   let displayName = factory.seq('Document.displayName', (n) => `Test Document ${n}`);
 
   let minioFileSystemFileName = faker.random.number({min:999999999999, max:10000000000000}) + "_" + (faker.random.alphaNumeric(60)).toLowerCase() + "." + docTypeSettings.ext;
+
+  let numberOfLabels = faker.random.number(5);
+  let distinctLabelsForThisDoc = [];
+  for (let i = 0; i<numberOfLabels, i++;) {
+    let label = factory_helper.getRandomExistingListElementName(labels);
+    if (distinctLabelsForThisDoc[label]) continue;
+    distinctLabelsForThisDoc.push(label);
+  }
+  
 
   let attrs = {
       _id              : factory_helper.ObjectId()
@@ -76,17 +91,14 @@ factory.define(factoryName, Document, buildOptions => {
     , milestone        : faker.random.arrayElement([null, factory_helper.ObjectId()])
     , dateUploaded     : dateUploaded
     , datePosted       : datePosted
-    , type             : factory_helper.ObjectId()
+    , type             : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(doctypes))
     , description      : faker.lorem.sentence()
     , documentAuthor   : author.fullName
-    , documentAuthorType   : factory_helper.ObjectId() // list
-    , projectPhase     : factory_helper.ObjectId()
+    , documentAuthorType   : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(authors))
+    , projectPhase     : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(projectPhases))
     , eaoStatus        : faker.random.arrayElement(["", "Published", "Rejected"])
     , keywords         : ""
-
-    // TODO generate more meaningful meta 
-    // eg ["Under Review","Public Comments/Submissions","(2nd Public Comment Period) Email dated May 13/05 from PersonName1 and PersonName2 (Delta BC) with comments regarding the truck traffic and the port."]
-    , labels           : [faker.lorem.sentence(), faker.lorem.sentence(), faker.lorem.sentence()]
+    , labels           : distinctLabelsForThisDoc
   };
   return attrs;
 });

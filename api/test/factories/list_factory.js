@@ -1,4 +1,5 @@
 const factory = require('factory-girl').factory;
+const factory_helper = require('./factory_helper');
 const List = require('../../helpers/models/list');
 let faker = require('faker/locale/en');
 
@@ -10,14 +11,27 @@ const ListArray3 = require('../../../migrations_data/newProjectPhaseListItems.js
 const ListArray4 = require('../../../migrations_data/regionList.js');
 const allListEntries = [].concat(ListArray1).concat(ListArray2).concat(ListArray3).concat(ListArray4);
 
-let allLists = {};
+let _allListsLookupDict = {};
+let allLists = [];
 
-for (let i=0; i<allListEntries; i++) {
-  let type = allListEntries[i].type;
-  let name = allListEntries[i].name
-  if (!(type in allLists)) allLists[type] = [];
-  if (!allLists[type].includes(name)) allLists[type].push(name);
+function refreshListsFromMigrationData() {
+  for (let i=0; i<allListEntries.length; i++) {
+    let type = allListEntries[i].type;
+    let name = allListEntries[i].name;
+    if (!(type in _allListsLookupDict)) _allListsLookupDict[type] = [];
+    if (!_allListsLookupDict[type].includes(name)) {    // ensure no dups
+      _allListsLookupDict[type].push(name);
+      allLists.push({type: type, name: name});
+    }
+  }
 }
+
+function getAllLists() {
+  if (0 == allLists.length) refreshListsFromMigrationData();
+  return allLists;
+}
+
+refreshListsFromMigrationData();
 
 factory.define(factoryName, List, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
@@ -26,12 +40,19 @@ factory.define(factoryName, List, buildOptions => {
   let randomListSample = {};
   let type = "";
   let name = "";
-  if ((type in buildOptions) && (buildOptions.type)) {
+  if ((type in buildOptions) && (buildOptions.type) && (name in buildOptions) && (buildOptions.name)) {
+    type = buildOptions.type;
+    name = buildOptions.name;
+  } else if ((type in buildOptions) && (buildOptions.type)) {
     type = buildOptions.type;
     randomListSample = faker.random.arrayElement(allLists[type]);
     name = randomListSample;
+  } else if ((name in buildOptions) && (buildOptions.name)) {
+    randomListSample = faker.random.arrayElement(allLists);
+    type = randomListSample.type;;
+    name = buildOptions.name;
   } else {
-    randomListSample = faker.random.arrayElement(allListArr);
+    randomListSample = faker.random.arrayElement(allLists);
     type = randomListSample.type;
     name = randomListSample.name
   }
@@ -49,4 +70,5 @@ factory.define(factoryName, List, buildOptions => {
 
 exports.factory = factory;
 exports.name = factoryName;
-exports.allLists = allLists;
+exports.allLists = getAllLists();
+exports.refreshListsFromMigrationData = refreshListsFromMigrationData;

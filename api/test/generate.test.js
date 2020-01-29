@@ -26,22 +26,17 @@ describe('Generate Test Data', () => {
           console.log("Data Generation is on");
           gh.generateEntireDatabase(usersData).then(generatedData =>{
             console.log(((genSettings.generate_consistent_data) ? "Consistent" : "Random") + " data generation " + ((genSettings.save_to_persistent_mongo) ? "saved" : "unsaved"));
-            //console.log('generatedData: [' + generatedData + ']');
             let projects = generatedData.projects;
-            console.log('projects: [' + projects + ']');
-
+            // console.log('projects: [' + projects + ']');
             let documents = generatedData.projectDocuments;
 
-            // throw projects
             projects.map((project) => {
               const projectDocuments = documents.filter(document => document[0].project == project._id);
               console.log('Project [id, name]: [' + project._id + ', ' + project.name + ']');
               
               projectDocuments.map((document) => {
-                console.log('document: [' + document[0] + ']');
-
+                // console.log('document: [' + document[0] + ']');
                 console.log('Document [id, project, documentFileName]: [' + document[0]._id + ', ' + document[0].project + ', ' + document[0].documentFileName + ']');
-                  // expect(1).toEqual(1);
               });
               
               expect(project._id).toEqual(jasmine.any(Object));

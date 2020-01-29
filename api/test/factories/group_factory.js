@@ -8,7 +8,7 @@ const factoryName = Group.modelName;
 factory.define(factoryName, Group, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
   factory_helper.faker = faker;
-  
+
   let usersPool = (buildOptions.usersPool) ? buildOptions.usersPool : [];
   let members = [];
   if (0 < usersPool.length) {

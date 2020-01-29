@@ -9,6 +9,8 @@ factory.define(factoryName, User, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
   factory_helper.faker = faker;
 
+  let organizationsPool = (buildOptions.orgsPool) ? buildOptions.orgsPool : null;
+
   let person = factory_helper.generateFakePerson();
   let attrs = {
       _id                     : factory_helper.ObjectId() 
@@ -17,7 +19,7 @@ factory.define(factoryName, User, buildOptions => {
     , lastName                : person.lastName
     , displayName             : person.fullName
     , email                   : person.emailAddress
-    , org                     : factory_helper.ObjectId()
+    , org                     : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(organizationsPool))
     , orgName                 : faker.company.companyName()
     , title                   : faker.name.title()
     , phoneNumber             : person.phoneNumber
