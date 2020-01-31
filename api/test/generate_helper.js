@@ -99,7 +99,7 @@ function generateEntireDatabase(usersData) {
   .then(pipeline => { 
     // foreach Comment Period, generate the Documents relating to it
     return new Promise(function(resolve, reject) {
-      generateChildSets(pipeline.commentPeriods, pipeline.users, pipeline.lists, commentPeriodDocumentTemplate).then(commentPeriodDocuments => {
+        generateChildSetsUsingPipeline(pipeline.commentPeriods, pipeline, commentPeriodDocumentTemplate).then(commentPeriodDocuments => {
         pipeline.commentPeriodDocuments = commentPeriodDocuments;
         resolve(pipeline);
       });
@@ -165,6 +165,7 @@ function generateCommentSetForCommentPeriod(factoryKey, commentPeriod, buildOpti
 
 function generateDocumentSetForProject(factoryKey, project, buildOptions, projectDocumentsToGen) {
   return new Promise(function(resolve, reject) {
+    buildOptions.projectShortName = project.shortName;
     let customDocumentSettings = { documentSource: "PROJECT", project: factory_helper.ObjectId(project._id) };
     factory.createMany(factoryKey, projectDocumentsToGen, customDocumentSettings, buildOptions).then(documents => {
       resolve(documents);
@@ -174,6 +175,10 @@ function generateDocumentSetForProject(factoryKey, project, buildOptions, projec
 
 function generateDocumentSetForCommentPeriod(factoryKey, commentPeriod, buildOptions, commentPeriodDocumentsToGen) {
   return new Promise(function(resolve, reject) {
+  buildOptions.generateFiles = "on";
+  let projectsPool = (buildOptions.pipeline) ? buildOptions.pipeline.projects : null;
+  const parentProject = projectsPool.filter(project => commentPeriod.project == project.id);
+  buildOptions.projectShortName = (1 == parentProject.length) ? parentProject.shortName : documentFactory.unsetProjectName;
   let customDocumentSettings = { documentSource: "COMMENT", project: factory_helper.ObjectId(commentPeriod.project), _comment: factory_helper.ObjectId(commentPeriod._id) };  // note that the document._comment field actually refers to a commentPeriod id
     factory.createMany(factoryKey, commentPeriodDocumentsToGen, customDocumentSettings, buildOptions).then(documents => {
       resolve(documents);

@@ -2,9 +2,18 @@ const factory = require('factory-girl').factory;
 const factory_helper = require('./factory_helper');
 const moment = require('moment');
 const Document = require('../../helpers/models/document');
+const uploadDir = require('../../controllers/document').uploadDir;
+const intformat = require('../../controllers/document').intformat;
+const generator = require('../../controllers/document').generator;
+const fs = require('fs');
+const MinioController = require('../../helpers/minio');
+const PDFDocument = require('pdfkit');
+const mime = require('mime');
 let faker = require('faker/locale/en');
 
 const factoryName = Document.modelName;
+
+const unsetProjectName = "the-project-name";
 
 const docProps = [
     { ext: "jpg", mime: "image/jpeg" }
@@ -26,7 +35,15 @@ factory.define(factoryName, Document, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
   factory_helper.faker = faker;
 
-  let listsPool = (buildOptions.listsPool) ? buildOptions.listsPool : null;
+  let generateFiles = true;
+  if (buildOptions.generateFiles) generateFiles = ("off" != buildOptions.generateFiles);
+
+  let projectShortName = unsetProjectName;
+  if (buildOptions.projectShortName) if (unsetProjectName != buildOptions.projectShortName) projectShortName = buildOptions.projectShortName;
+
+  let listsPool = (buildOptions.pipeline) ? 
+    (buildOptions.pipeline.lists) ? buildOptions.pipeline.lists : null :
+    (buildOptions.listsPool) ? buildOptions.listsPool : null;
   const doctypes = listsPool.filter(listEntry => "doctype" === listEntry.type);
   const authors = listsPool.filter(listEntry => "author" === listEntry.type);
   const labels = listsPool.filter(listEntry => "label" === listEntry.type);
@@ -48,7 +65,7 @@ factory.define(factoryName, Document, buildOptions => {
 
   let numberOfLabels = faker.random.number(5);
   let distinctLabelsForThisDoc = [];
-  for (let i = 0; i<numberOfLabels, i++;) {
+  for (let i = 0; i < numberOfLabels, i++;) {
     let label = factory_helper.getRandomExistingListElementName(labels);
     if (distinctLabelsForThisDoc[label]) continue;
     distinctLabelsForThisDoc.push(label);
@@ -77,7 +94,7 @@ factory.define(factoryName, Document, buildOptions => {
     // Not editable
     , documentFileName : faker.lorem.sentence().replace(/\.$/g, '') + "." + docTypeSettings.ext
     , internalOriginalName : minioFileSystemFileName
-    , internalURL      : "etl/the-project-name/" + minioFileSystemFileName
+    , internalURL      : "etl/" + projectShortName + "/" + minioFileSystemFileName
     , internalExt      : docTypeSettings.ext
     , internalSize     : faker.random.number({min:20000, max:250000000})  // staff upload some big docx's and pptx's
     , passedAVCheck    : (faker.random.number(100) < 5)  // 5% fail
@@ -100,8 +117,41 @@ factory.define(factoryName, Document, buildOptions => {
     , keywords         : ""
     , labels           : distinctLabelsForThisDoc
   };
+
+  if (generateFiles) {
+    // no try catch on purpose, we want this to fail hard if it does and break the test
+    var ext = "pdf";
+    let guid = intformat(generator.next(), 'dec');
+    let tempFilePath = uploadDir + guid + "." + ext;
+
+    const doc = new PDFDocument;
+    doc.pipe(fs.createWriteStream(tempFilePath));
+    doc.addPage()
+      .fontSize(12)
+      .text(faker.lorem.paragraphs(faker.random.number(1000,100000)), 100, 100);
+    doc.end();
+
+    MinioController.putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, attrs.project, attrs.documentFileName, tempFilePath)
+      .then(async function (minioFile) {
+        let stats = fs.statSync(tempFilePath);
+        attrs.internalSize = stats["size"];
+        attrs.internalMime = mime.getType(tempFilePath);
+
+        // remove file from temp folder
+        fs.unlinkSync(tempFilePath);
+
+        attrs.internalOriginalName = attrs.documentFileName;
+        attrs.internalURL = minioFile.path;
+        attrs.internalExt = minioFile.extension;
+        attrs.passedAVCheck = true;
+        attrs.displayName = attrs.documentFileName;
+
+        return attrs;
+      });
+  }
   return attrs;
 });
 
 exports.factory = factory;
 exports.name = factoryName;
+exports.unsetProjectName = unsetProjectName;

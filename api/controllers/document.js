@@ -47,6 +47,11 @@ var getSanitizedFields = function (fields) {
   });
 }
 
+exports.uploadDir = uploadDir;
+exports.FlakeIdGen = FlakeIdGen;
+exports.intformat = intformat;
+exports.generator = generator;
+
 exports.protectedOptions = function (args, res, rest) {
   res.status(200).send();
 }
