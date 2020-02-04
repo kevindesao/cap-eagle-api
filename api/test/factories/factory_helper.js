@@ -1,6 +1,6 @@
 const canada = require('canada');
 const _ = require('lodash');
-const bsonObjectId = require('BSON').ObjectId;
+const bsonObjectId = require('bson').ObjectId;
 const mongTypes = require('mongoose').Types;
 let faker = require('faker/locale/en');
 
@@ -123,8 +123,20 @@ function hexaDecimal(count) {
 
 function generateSeededObjectId(value) {
     let oid = (typeof value === "undefined") ? hexaDecimal(24).toLocaleLowerCase() : value;
-    if (!bsonObjectId.isValid(oid)) throw "Invalid attempt to generate an ObjectID: '" + oid + "'"
+    if (!bsonObjectId.isValid(oid)) throw "Invalid attempt to generate an ObjectID: '" + oid + "'";
     return mongTypes.ObjectId(oid);
+}
+
+let index = 1;
+
+function getInc() {
+    return (index + 1) % 0xffffff;
+}
+
+// when generating multiple projects' worth of data we need seeds that follow a repeatable 
+// pattern when the generators are set to static but are distinct values in order to avoid collisions
+function generateDeterministicSeed(commonFactorySeed, parentId) {
+    return (commonFactorySeed * 1000000) + Number(parentId.toString().replace(/a|b|c|d|e|f/gi, "").substr(0, 5)) + getInc();
 }
 
 exports.faker = faker;
@@ -137,3 +149,5 @@ exports.getRandomExistingListElementName = getRandomExistingListElementName;
 exports.generateFakeLocationString = generateFakeLocationString;
 exports.generateEpicFormatPhoneNumber = generateEpicFormatPhoneNumber;
 exports.ObjectId = generateSeededObjectId;
+exports.getInc = getInc;
+exports.generateDeterministicSeed = generateDeterministicSeed;

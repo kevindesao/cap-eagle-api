@@ -6,6 +6,7 @@ const uploadDir = require('../../controllers/document').uploadDir;
 const intformat = require('../../controllers/document').intformat;
 const generator = require('../../controllers/document').generator;
 const fs = require('fs');
+const request = require('request');
 const MinioController = require('../../helpers/minio');
 const PDFDocument = require('pdfkit');
 const mime = require('mime');
@@ -58,7 +59,8 @@ factory.define(factoryName, Document, buildOptions => {
   let dateUploaded = (null == updator) ? datePosted.clone().subtract(faker.random.number(15), 'days') : updatedDate.clone().subtract(faker.random.number(15), 'days');
   let createdDate = dateUploaded.clone().subtract(faker.random.number(15), 'days');
 
-  let docTypeSettings = faker.random.arrayElement(docProps);
+  let onlyUsePDFs = generateFiles;
+  let docTypeSettings = (onlyUsePDFs) ? { ext: "pdf", mime: "application/pdf" } : docProps. faker.random.arrayElement(docProps);
   let displayName = factory.seq('Document.displayName', (n) => `Test Document ${n}`);
 
   let minioFileSystemFileName = faker.random.number({min:999999999999, max:10000000000000}) + "_" + (faker.random.alphaNumeric(60)).toLowerCase() + "." + docTypeSettings.ext;
@@ -117,37 +119,71 @@ factory.define(factoryName, Document, buildOptions => {
     , keywords         : ""
     , labels           : distinctLabelsForThisDoc
   };
-
+  generateFiles = false;
   if (generateFiles) {
-    // no try catch on purpose, we want this to fail hard if it does and break the test
-    var ext = "pdf";
     let guid = intformat(generator.next(), 'dec');
-    let tempFilePath = uploadDir + guid + "." + ext;
+    let tempFilePath = uploadDir + guid + "." + docTypeSettings.ext;
 
-    const doc = new PDFDocument;
-    doc.pipe(fs.createWriteStream(tempFilePath));
-    doc.addPage()
-      .fontSize(12)
-      .text(faker.lorem.paragraphs(faker.random.number(1000,100000)), 100, 100);
-    doc.end();
+    let stamp = Buffer.from(faker.lorem.paragraphs(100),'utf8');
+    let imgSrc = faker.image.avatar();
+    let tempImgPath = "/tmp/" + guid + ".jpg";
 
-    MinioController.putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, attrs.project, attrs.documentFileName, tempFilePath)
-      .then(async function (minioFile) {
-        let stats = fs.statSync(tempFilePath);
-        attrs.internalSize = stats["size"];
-        attrs.internalMime = mime.getType(tempFilePath);
+    var download = function(uri, filename, callback){
+      request.head(uri, function(err, res, body){
+        console.log('content-type:', res.headers['content-type']);
+        console.log('content-length:', res.headers['content-length']);
 
-        // remove file from temp folder
-        fs.unlinkSync(tempFilePath);
-
-        attrs.internalOriginalName = attrs.documentFileName;
-        attrs.internalURL = minioFile.path;
-        attrs.internalExt = minioFile.extension;
-        attrs.passedAVCheck = true;
-        attrs.displayName = attrs.documentFileName;
-
-        return attrs;
+        request(uri).pipe(fs.createWriteStream(filename)).on('close', callback);
       });
+    };
+
+    download(imgSrc, tempImgPath, function() {
+      const doc = new PDFDocument({autoFirstPage:false, bufferPages: true});
+      doc.pipe(fs.createWriteStream(tempFilePath));
+      doc.addPage()
+        .fontSize(12)
+        .text("Document Filename: " + attrs.documentFileName + "\n" + "Bucket Filename: " + guid + "." + docTypeSettings.ext + "\n", 100, 100);
+      for (let i = 0; i < faker.random.number({min:100, max:1000}); i++) {
+        doc.addPage()
+        .image(tempImgPath, {
+          fit: [250,250],
+          align: 'center',
+          valign: 'center'
+        });
+        doc.addPage()
+        .fontSize(12)
+        .text(stamp.toString(), 100, 100);
+        doc.flushPages();
+      }
+      doc.end();
+
+    }).then(function() {
+      try{
+        MinioController
+        .putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, attrs.project, attrs.documentFileName, tempFilePath)
+        .then(async function (minioFile) {
+  
+            let stats = fs.statSync(tempFilePath);
+            attrs.internalSize = stats["size"];
+            attrs.internalMime = mime.getType(tempFilePath);
+      
+            // remove file from temp folder
+            fs.unlinkSync(tempFilePath);
+      
+            attrs.internalOriginalName = attrs.documentFileName;
+            attrs.internalURL = minioFile.path;
+            attrs.internalExt = minioFile.extension;
+            attrs.passedAVCheck = true;
+            attrs.displayName = attrs.documentFileName;
+      
+            return attrs;
+        });
+      } catch (e) {
+        console.log("Minio error:" + e);
+      }
+    });
+
+
   }
   return attrs;
 });
@@ -155,3 +191,4 @@ factory.define(factoryName, Document, buildOptions => {
 exports.factory = factory;
 exports.name = factoryName;
 exports.unsetProjectName = unsetProjectName;
+exports.MinioControllerBucket = MinioController.BUCKETS.DOCUMENTS_BUCKET;

@@ -10,8 +10,13 @@ factory.define(factoryName, RecentActivity, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
   factory_helper.faker = faker;
 
-  let usersPool = (buildOptions.usersPool) ? buildOptions.usersPool : null;
-  let listsPool = (buildOptions.listsPool) ? buildOptions.listsPool : null;
+  let usersPool = (buildOptions.pipeline) ? 
+    (buildOptions.pipeline.users) ? buildOptions.pipeline.users : null :
+    (buildOptions.usersPool) ? buildOptions.usersPool : null;
+
+  let listsPool = (buildOptions.pipeline) ? 
+    (buildOptions.pipeline.lists) ? buildOptions.pipeline.lists : null :
+    (buildOptions.listsPool) ? buildOptions.listsPool : null;
   const headlineTypes = listsPool.filter(listEntry => "headlineType" === listEntry.type);
   
   let raType = faker.random.arrayElement(["News", "Public Comment Period"]);

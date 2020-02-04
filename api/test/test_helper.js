@@ -26,7 +26,7 @@ beforeAll(async () => {
   if (2 < genSettings.projects) jest.setTimeout(5000 * genSettings.projects);
   if (!genSettings.save_to_persistent_mongo) mongoServer = instantiateInMemoryMongoServer();
   await mongooseConnect();
-  if (genSettings.generate) await checkMigrations(runMigrations);
+  if ((genSettings.generate) && (genSettings.save_to_persistent_mongo)) await checkMigrations(runMigrations);
 });
 
 beforeEach(async () => {
@@ -35,15 +35,22 @@ beforeEach(async () => {
 
 afterEach(done => {
   dataGenerationSettings.then(genSettings => {
+    console.log("afterEach:: genSettings = " + genSettings);
+    console.log("afterEach:: mongoose.connection = " + mongoose.connection);
     if (mongoose.connection && mongoose.connection.db) {
+      console.log("afterEach:: mongoose.connection = " + mongoose.connection);
       if (!genSettings.save_to_persistent_mongo) {
+        console.log("afterEach:: genSettings.save_to_persistent_mongo = " + genSettings.save_to_persistent_mongo);
         dbCleaner.clean(mongoose.connection.db, () => {
+          console.log("afterEach:: ran dbCleaner");
           done();
         });
       } else {
+        console.log("afterEach:: did not run dbCleaner");
         done();
       }
     } else {
+      console.log("afterEach:: did not enter mongoose dbCleaner branch");
       done();
     }
   });
@@ -51,8 +58,12 @@ afterEach(done => {
 
 afterAll(async () => {
   let genSettings = await dataGenerationSettings;
+  console.log("afterAll:: genSettings = " + genSettings);
+  console.log("afterAll:: mongoose.connection = " + mongoose.connection);
   if (mongoose.connection) await mongoose.disconnect();
+  console.log("afterAll:: mongoServer = " + mongoServer);
   if ((mongoServer) && (!genSettings.save_to_persistent_mongo)) await mongoServer.stop();
+  console.log("afterAll:: mongoServer = " + mongoServer);
 });
 
 function setupAppServer() {
@@ -175,14 +186,16 @@ async function checkMigrations(callback) {
   checkMongoUri();
   let options;
   if ((!_.isEmpty(app_helper.credentials)) 
-   && (!_.isEmpty(app_helper.credentials.db_username)) 
-   && (!_.isEmpty(app_helper.credentials.db_password))) {
+  && (!_.isEmpty(app_helper.credentials.db_username)) 
+  && (!_.isEmpty(app_helper.credentials.db_password))) {
     options = {};
     let auth = {};
     auth.user = app_helper.credentials.db_username;
     auth.password = app_helper.credentials.db_password;
     options.auth = auth;
   }
+  console.log("checkMigrations:: " + mongoUri);
+  console.log("checkMigrations:: " + options);
   MongoClient.connect(mongoUri, options, function(err, db) {
     if (err) console.error(err);
     var dbo = db.db(app_helper.dbName);
