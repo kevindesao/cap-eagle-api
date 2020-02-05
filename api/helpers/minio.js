@@ -72,6 +72,7 @@ var makeBucket = function (bucket) {
 var bucketExists = function (bucket) {
   return minioClient.bucketExists(bucket);
 }
+exports.bucketExists = bucketExists;
 
 /**
  * Save an object to Minio.

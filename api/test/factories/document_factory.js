@@ -5,6 +5,7 @@ const Document = require('../../helpers/models/document');
 const uploadDir = require('../../controllers/document').uploadDir;
 const intformat = require('../../controllers/document').intformat;
 const generator = require('../../controllers/document').generator;
+const Promise = require("bluebird");
 const fs = require('fs');
 const request = require('request');
 const MinioController = require('../../helpers/minio');
@@ -37,6 +38,7 @@ factory.define(factoryName, Document, buildOptions => {
   factory_helper.faker = faker;
 
   let generateFiles = true;
+  let persistFiles = true;
   if (buildOptions.generateFiles) generateFiles = ("off" != buildOptions.generateFiles);
 
   let projectShortName = unsetProjectName;
@@ -119,25 +121,23 @@ factory.define(factoryName, Document, buildOptions => {
     , keywords         : ""
     , labels           : distinctLabelsForThisDoc
   };
-  generateFiles = false;
+
   if (generateFiles) {
-    let guid = intformat(generator.next(), 'dec');
+    // let guid = intformat(generator.next(), 'dec');  // eg. 6628723481510936576
+    let guid = faker.random.number({min:1, max:9}).toString() + faker.helpers.replaceSymbolWithNumber("##################");  // eg. 6628723481510936576
     let tempFilePath = uploadDir + guid + "." + docTypeSettings.ext;
 
-    let stamp = Buffer.from(faker.lorem.paragraphs(100),'utf8');
+    let stamp = Buffer.from(faker.lorem.paragraphs(100, "\n\n"),'utf8');
     let imgSrc = faker.image.avatar();
     let tempImgPath = "/tmp/" + guid + ".jpg";
 
     var download = function(uri, filename, callback){
       request.head(uri, function(err, res, body){
-        console.log('content-type:', res.headers['content-type']);
-        console.log('content-length:', res.headers['content-length']);
-
         request(uri).pipe(fs.createWriteStream(filename)).on('close', callback);
       });
     };
 
-    download(imgSrc, tempImgPath, function() {
+    Promise.resolve(download(imgSrc, tempImgPath, function() {
       const doc = new PDFDocument({autoFirstPage:false, bufferPages: true});
       doc.pipe(fs.createWriteStream(tempFilePath));
       doc.addPage()
@@ -145,45 +145,38 @@ factory.define(factoryName, Document, buildOptions => {
         .text("Document Filename: " + attrs.documentFileName + "\n" + "Bucket Filename: " + guid + "." + docTypeSettings.ext + "\n", 100, 100);
       for (let i = 0; i < faker.random.number({min:100, max:1000}); i++) {
         doc.addPage()
+        .fontSize(12)
+        .text(stamp.toString(), 100, 100);
+        doc.addPage()
         .image(tempImgPath, {
           fit: [250,250],
           align: 'center',
           valign: 'center'
         });
-        doc.addPage()
-        .fontSize(12)
-        .text(stamp.toString(), 100, 100);
         doc.flushPages();
       }
       doc.end();
 
-    }).then(function() {
-      try{
+      let stats = fs.statSync(tempFilePath);
+      attrs.internalSize = stats["size"];
+      attrs.internalMime = mime.getType(tempFilePath);
+      attrs.internalOriginalName = attrs.documentFileName;
+      attrs.displayName = attrs.documentFileName;
+      attrs.passedAVCheck = true;
+
+      if (MinioController.bucketExists(MinioController.BUCKETS.DOCUMENTS_BUCKET)) {
         MinioController
         .putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, attrs.project, attrs.documentFileName, tempFilePath)
         .then(async function (minioFile) {
-  
-            let stats = fs.statSync(tempFilePath);
-            attrs.internalSize = stats["size"];
-            attrs.internalMime = mime.getType(tempFilePath);
-      
-            // remove file from temp folder
-            fs.unlinkSync(tempFilePath);
-      
-            attrs.internalOriginalName = attrs.documentFileName;
             attrs.internalURL = minioFile.path;
             attrs.internalExt = minioFile.extension;
-            attrs.passedAVCheck = true;
-            attrs.displayName = attrs.documentFileName;
-      
-            return attrs;
+        })
+        .finally(function(){
+          // remove file from temp folder
+          if (!persistFiles) fs.unlinkSync(tempFilePath, () => {});
         });
-      } catch (e) {
-        console.log("Minio error:" + e);
       }
-    });
-
-
+    }));
   }
   return attrs;
 });

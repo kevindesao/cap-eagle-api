@@ -13,7 +13,7 @@ const fs = require('fs');
 
 const app = express();
 const defaultNumberOfProjects = 1;
-
+let performMigrations = false;  // migrations used to be necessary to load the lists but we now load them directly via the list factory
 let mongoServer;
 let mongoUri = "";  // not initializing to localhost here on purpose - would rather error out than corrupt a persistent db
 mongoose.Promise = global.Promise;
@@ -26,7 +26,7 @@ beforeAll(async () => {
   if (2 < genSettings.projects) jest.setTimeout(5000 * genSettings.projects);
   if (!genSettings.save_to_persistent_mongo) mongoServer = instantiateInMemoryMongoServer();
   await mongooseConnect();
-  if ((genSettings.generate) && (genSettings.save_to_persistent_mongo)) await checkMigrations(runMigrations);
+  if ((performMigrations) && (genSettings.generate) && (genSettings.save_to_persistent_mongo)) await checkMigrations(runMigrations);
 });
 
 beforeEach(async () => {
@@ -76,7 +76,6 @@ function setupAppServer() {
 function checkMongoUri() {
   if ("" == mongoUri) throw "Mongo URI is not set";
 }
-
 
 function getDataGenerationSettings() {
   let filepath = '/tmp/generate.config';
@@ -194,8 +193,6 @@ async function checkMigrations(callback) {
     auth.password = app_helper.credentials.db_password;
     options.auth = auth;
   }
-  console.log("checkMigrations:: " + mongoUri);
-  console.log("checkMigrations:: " + options);
   MongoClient.connect(mongoUri, options, function(err, db) {
     if (err) console.error(err);
     var dbo = db.db(app_helper.dbName);
