@@ -10,7 +10,9 @@ const MongoClient = require('mongodb').MongoClient;
 const exec = require('child_process').exec;
 const _ = require('lodash');
 const fs = require('fs');
-
+const fh = require('./factories/factory_helper');
+const projectGenerationTime = 5 * 1000;
+const prerequisiteGenerationTime = 30 * 1000;
 const app = express();
 const defaultNumberOfProjects = 1;
 let performMigrations = false;  // migrations used to be necessary to load the lists but we now load them directly via the list factory
@@ -19,14 +21,24 @@ let mongoUri = "";  // not initializing to localhost here on purpose - would rat
 mongoose.Promise = global.Promise;
 setupAppServer();
 
-jest.setTimeout(10000);
+let jestTimeout = 10 * 1000;
+
+jest.setTimeout(jestTimeout);
 
 beforeAll(async () => {
   let genSettings = await dataGenerationSettings;
-  if (2 < genSettings.projects) jest.setTimeout(5000 * genSettings.projects);
+  if (2 < genSettings.projects) {
+    jestTimeout = jestTimeout + (genSettings.projects * projectGenerationTime);
+    jest.setTimeout(jestTimeout);
+  }
   if (!genSettings.save_to_persistent_mongo) mongoServer = instantiateInMemoryMongoServer();
   await mongooseConnect();
   if ((performMigrations) && (genSettings.generate) && (genSettings.save_to_persistent_mongo)) await checkMigrations(runMigrations);
+  if (!fs.existsSync(fh.generatedDocSamples.L)) {
+    jestTimeout = jestTimeout + prerequisiteGenerationTime;
+    jest.setTimeout(jestTimeout);
+    await fh.generatePrerequisitePdfs();
+  }
 });
 
 beforeEach(async () => {

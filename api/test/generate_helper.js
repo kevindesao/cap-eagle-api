@@ -173,6 +173,8 @@ function generateCommentSetForCommentPeriod(factoryKey, commentPeriod, buildOpti
 function generateDocumentSetForProject(factoryKey, project, buildOptions, projectDocumentsToGen) {
   console.debug("projectDocumentsToGen = " + projectDocumentsToGen);
   return new Promise(function(resolve, reject) {
+    buildOptions.generateFiles = "generate";  // vs "off"
+    buildOptions.persistFiles = "persist";  // vs "off"
     buildOptions.projectShortName = project.shortName;
     let customDocumentSettings = { documentSource: "PROJECT", project: factory_helper.ObjectId(project._id) };
     factory.createMany(factoryKey, projectDocumentsToGen, customDocumentSettings, buildOptions).then(documents => {
@@ -184,7 +186,8 @@ function generateDocumentSetForProject(factoryKey, project, buildOptions, projec
 function generateDocumentSetForCommentPeriod(factoryKey, commentPeriod, buildOptions, commentPeriodDocumentsToGen) {
   console.debug("commentPeriodDocumentsToGen = " + commentPeriodDocumentsToGen);
   return new Promise(function(resolve, reject) {
-  buildOptions.generateFiles = "on";
+    buildOptions.generateFiles = "generate";  // vs "off"
+    buildOptions.persistFiles = "persist";  // vs "off"
   let projectsPool = (buildOptions.pipeline) ? buildOptions.pipeline.projects : null;
   const parentProject = projectsPool.filter(project => commentPeriod.project == project.id);
   buildOptions.projectShortName = (1 == parentProject.length) ? parentProject.shortName : documentFactory.unsetProjectName;

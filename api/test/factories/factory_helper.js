@@ -3,6 +3,8 @@ const _ = require('lodash');
 const bsonObjectId = require('bson').ObjectId;
 const mongTypes = require('mongoose').Types;
 let faker = require('faker/locale/en');
+const fs = require('fs');
+const HummusRecipe = require('hummus-recipe');
 
 let bcCities = [];
 loadBcCities();
@@ -139,6 +141,39 @@ function generateDeterministicSeed(commonFactorySeed, parentId) {
     return (commonFactorySeed * 1000000) + Number(parentId.toString().replace(/a|b|c|d|e|f/gi, "").substr(0, 5)) + getInc();
 }
 
+const generatedDocBasePath = "/tmp/";
+const generatedDocExt = ".pdf";
+
+// sizes based on EPIC representative samples
+const generatedDocSamples = {
+    S: generatedDocBasePath + "Small" + generatedDocExt, 
+    M: generatedDocBasePath + "Medium" + generatedDocExt, 
+    L: generatedDocBasePath + "Large" + generatedDocExt
+};
+
+// expensive, do this minimally and use the cached results
+async function generatePrerequisitePdf(filepath, iterationSize) {
+    if (!fs.existsSync(filepath)) {
+        const fillerPDF = './api/test/factories/document_filler.pdf';
+        const pdfDoc = new HummusRecipe('new', filepath,{
+            version: 1.0,
+            author: 'Document Factory',
+            title: 'Test Document',
+            subject: 'Generated PDF document for document factory testing'
+          });
+        for (let i = 0; i < iterationSize; i++) {
+            pdfDoc.appendPage(fillerPDF);
+        }
+        await pdfDoc.endPDF();
+    }
+};
+
+async function generatePrerequisitePdfs() {
+    await generatePrerequisitePdf(generatedDocSamples.S, 3);
+    await generatePrerequisitePdf(generatedDocSamples.M, 25);
+    await generatePrerequisitePdf(generatedDocSamples.L, 120);
+};
+
 exports.faker = faker;
 exports.getBcCities = getBcCities;
 exports.generateFakePostal = generateFakePostal;
@@ -151,3 +186,5 @@ exports.generateEpicFormatPhoneNumber = generateEpicFormatPhoneNumber;
 exports.ObjectId = generateSeededObjectId;
 exports.getInc = getInc;
 exports.generateDeterministicSeed = generateDeterministicSeed;
+exports.generatedDocSamples = generatedDocSamples;
+exports.generatePrerequisitePdfs = generatePrerequisitePdfs;
