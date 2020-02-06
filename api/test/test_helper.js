@@ -10,23 +10,35 @@ const MongoClient = require('mongodb').MongoClient;
 const exec = require('child_process').exec;
 const _ = require('lodash');
 const fs = require('fs');
-
+const fh = require('./factories/factory_helper');
+const projectGenerationTime = 5 * 1000;
+const prerequisiteGenerationTime = 30 * 1000;
 const app = express();
 const defaultNumberOfProjects = 1;
-
+let performMigrations = false;  // migrations used to be necessary to load the lists but we now load them directly via the list factory
 let mongoServer;
 let mongoUri = "";  // not initializing to localhost here on purpose - would rather error out than corrupt a persistent db
 mongoose.Promise = global.Promise;
 setupAppServer();
 
-jest.setTimeout(10000);
+let jestTimeout = 10 * 1000;
+
+jest.setTimeout(jestTimeout);
 
 beforeAll(async () => {
   let genSettings = await dataGenerationSettings;
-  if (2 < genSettings.projects) jest.setTimeout(5000 * genSettings.projects);
+  if (2 < genSettings.projects) {
+    jestTimeout = jestTimeout + (genSettings.projects * projectGenerationTime);
+    jest.setTimeout(jestTimeout);
+  }
   if (!genSettings.save_to_persistent_mongo) mongoServer = instantiateInMemoryMongoServer();
   await mongooseConnect();
-  if ((genSettings.generate) && (genSettings.save_to_persistent_mongo)) await checkMigrations(runMigrations);
+  if ((performMigrations) && (genSettings.generate) && (genSettings.save_to_persistent_mongo)) await checkMigrations(runMigrations);
+  if (!fs.existsSync(fh.generatedDocSamples.L)) {
+    jestTimeout = jestTimeout + prerequisiteGenerationTime;
+    jest.setTimeout(jestTimeout);
+    await fh.generatePrerequisitePdfs();
+  }
 });
 
 beforeEach(async () => {
@@ -35,22 +47,15 @@ beforeEach(async () => {
 
 afterEach(done => {
   dataGenerationSettings.then(genSettings => {
-    console.log("afterEach:: genSettings = " + genSettings);
-    console.log("afterEach:: mongoose.connection = " + mongoose.connection);
     if (mongoose.connection && mongoose.connection.db) {
-      console.log("afterEach:: mongoose.connection = " + mongoose.connection);
       if (!genSettings.save_to_persistent_mongo) {
-        console.log("afterEach:: genSettings.save_to_persistent_mongo = " + genSettings.save_to_persistent_mongo);
         dbCleaner.clean(mongoose.connection.db, () => {
-          console.log("afterEach:: ran dbCleaner");
           done();
         });
       } else {
-        console.log("afterEach:: did not run dbCleaner");
         done();
       }
     } else {
-      console.log("afterEach:: did not enter mongoose dbCleaner branch");
       done();
     }
   });
@@ -58,12 +63,8 @@ afterEach(done => {
 
 afterAll(async () => {
   let genSettings = await dataGenerationSettings;
-  console.log("afterAll:: genSettings = " + genSettings);
-  console.log("afterAll:: mongoose.connection = " + mongoose.connection);
   if (mongoose.connection) await mongoose.disconnect();
-  console.log("afterAll:: mongoServer = " + mongoServer);
   if ((mongoServer) && (!genSettings.save_to_persistent_mongo)) await mongoServer.stop();
-  console.log("afterAll:: mongoServer = " + mongoServer);
 });
 
 function setupAppServer() {
@@ -76,7 +77,6 @@ function setupAppServer() {
 function checkMongoUri() {
   if ("" == mongoUri) throw "Mongo URI is not set";
 }
-
 
 function getDataGenerationSettings() {
   let filepath = '/tmp/generate.config';
@@ -194,8 +194,6 @@ async function checkMigrations(callback) {
     auth.password = app_helper.credentials.db_password;
     options.auth = auth;
   }
-  console.log("checkMigrations:: " + mongoUri);
-  console.log("checkMigrations:: " + options);
   MongoClient.connect(mongoUri, options, function(err, db) {
     if (err) console.error(err);
     var dbo = db.db(app_helper.dbName);
