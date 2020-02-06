@@ -47,22 +47,15 @@ beforeEach(async () => {
 
 afterEach(done => {
   dataGenerationSettings.then(genSettings => {
-    console.log("afterEach:: genSettings = " + genSettings);
-    console.log("afterEach:: mongoose.connection = " + mongoose.connection);
     if (mongoose.connection && mongoose.connection.db) {
-      console.log("afterEach:: mongoose.connection = " + mongoose.connection);
       if (!genSettings.save_to_persistent_mongo) {
-        console.log("afterEach:: genSettings.save_to_persistent_mongo = " + genSettings.save_to_persistent_mongo);
         dbCleaner.clean(mongoose.connection.db, () => {
-          console.log("afterEach:: ran dbCleaner");
           done();
         });
       } else {
-        console.log("afterEach:: did not run dbCleaner");
         done();
       }
     } else {
-      console.log("afterEach:: did not enter mongoose dbCleaner branch");
       done();
     }
   });
@@ -70,12 +63,8 @@ afterEach(done => {
 
 afterAll(async () => {
   let genSettings = await dataGenerationSettings;
-  console.log("afterAll:: genSettings = " + genSettings);
-  console.log("afterAll:: mongoose.connection = " + mongoose.connection);
   if (mongoose.connection) await mongoose.disconnect();
-  console.log("afterAll:: mongoServer = " + mongoServer);
   if ((mongoServer) && (!genSettings.save_to_persistent_mongo)) await mongoServer.stop();
-  console.log("afterAll:: mongoServer = " + mongoServer);
 });
 
 function setupAppServer() {
