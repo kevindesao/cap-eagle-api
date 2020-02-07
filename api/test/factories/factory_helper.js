@@ -143,6 +143,15 @@ function generateDeterministicSeed(commonFactorySeed, parentId) {
     return (commonFactorySeed * 1000000) + Number(parentId.toString().replace(/a|b|c|d|e|f/gi, "").substr(0, 5)) + getInc();
 }
 
+function touchPath(pathToTouch) {
+    try {
+        const time = new Date();
+        fs.utimesSync(pathToTouch, time, time);
+    } catch (err) {
+        fs.closeSync(fs.openSync(pathToTouch, 'w'));
+    }    
+}
+
 let epicAppTmpBasePath = path.sep + "tmp" + path.sep + "epic" + path.sep;
 let generatedDocBasePath = epicAppTmpBasePath + "sampleGeneratedDocs" + path.sep;
 shell.mkdir('-p', generatedDocBasePath);
@@ -199,3 +208,4 @@ exports.generatedDocSamples = generatedDocSamples;
 exports.generatePrerequisitePdfs = generatePrerequisitePdfs;
 exports.endsWithPathSep = endsWithPathSep;
 exports.epicAppTmpBasePath = epicAppTmpBasePath;
+exports.touchPath = touchPath;
