@@ -137,6 +137,7 @@ function generatePhysicalFile(faker, generateFiles, persistFiles, projectIdStr, 
     
     let tempFilePath = projectDocTempPath + guid + "." + attrs.internalExt;
     fs.copyFileSync(templatePath, tempFilePath);
+    factory_helper.touchPath(tempFilePath);
     MinioController
     .putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, projectIdStr, originalFileName, tempFilePath)
     .then(async function (minioFile) {
