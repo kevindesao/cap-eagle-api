@@ -100,8 +100,8 @@ objects:
     metadata:
       name: ${NAME}-docs
       annotations:
-        volume.beta.kubernetes.io/storage-class: netapp-file-standard
-        volume.beta.kubernetes.io/storage-provisioner: kubernetes.io/netapp
+        volume.beta.kubernetes.io/storage-class: ${STORAGE_CLASS}
+        volume.beta.kubernetes.io/storage-provisioner: ${STORAGE_PROVIDER}
     spec:
       accessModes:
       - ReadWriteOnce
@@ -187,4 +187,14 @@ parameters:
   displayName: Minio Image Tag
   description: The tag of the minio image.
   value: stable
+  required: true
+- name: STORAGE_CLASS
+  displayName: Storage Class
+  description: Storage class to use for physical volume claim.
+  value: netapp-file-standard
+  required: true
+- name: STORAGE_PROVIDER
+  displayName: Storage Provider
+  description: Storage provider to use for physical volume claim.
+  value: kubernetes.io/netapp
   required: true
