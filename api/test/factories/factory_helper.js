@@ -4,6 +4,8 @@ const bsonObjectId = require('bson').ObjectId;
 const mongTypes = require('mongoose').Types;
 let faker = require('faker/locale/en');
 const fs = require('fs');
+const path = require('path');
+const shell = require('shelljs');
 const HummusRecipe = require('hummus-recipe');
 
 let bcCities = [];
@@ -141,7 +143,10 @@ function generateDeterministicSeed(commonFactorySeed, parentId) {
     return (commonFactorySeed * 1000000) + Number(parentId.toString().replace(/a|b|c|d|e|f/gi, "").substr(0, 5)) + getInc();
 }
 
-const generatedDocBasePath = "/tmp/";
+let epicAppTmpBasePath = path.sep + "tmp" + path.sep + "epic" + path.sep;
+let generatedDocBasePath = epicAppTmpBasePath + "sampleGeneratedDocs" + path.sep;
+shell.mkdir('-p', generatedDocBasePath);
+
 const generatedDocExt = ".pdf";
 
 // sizes based on EPIC representative samples
@@ -174,6 +179,10 @@ async function generatePrerequisitePdfs() {
     await generatePrerequisitePdf(generatedDocSamples.L, 120);
 };
 
+function endsWithPathSep(pathToCheck) {
+    return ((0 < pathToCheck.length) && (path.sep == pathToCheck.slice(-1))) ? pathToCheck : pathToCheck + path.sep;
+}
+
 exports.faker = faker;
 exports.getBcCities = getBcCities;
 exports.generateFakePostal = generateFakePostal;
@@ -188,3 +197,5 @@ exports.getInc = getInc;
 exports.generateDeterministicSeed = generateDeterministicSeed;
 exports.generatedDocSamples = generatedDocSamples;
 exports.generatePrerequisitePdfs = generatePrerequisitePdfs;
+exports.endsWithPathSep = endsWithPathSep;
+exports.epicAppTmpBasePath = epicAppTmpBasePath;
