@@ -2,8 +2,9 @@ const factory = require('factory-girl').factory;
 const factory_helper = require('./factory_helper');
 const moment = require('moment');
 const Document = require('../../helpers/models/document');
-const uploadDir = require('../../controllers/document').uploadDir;
 const fs = require('fs');
+const path = require('path');
+const shell = require('shelljs');
 const MinioController = require('../../helpers/minio');
 let faker = require('faker/locale/en');
 
@@ -31,11 +32,6 @@ factory.define(factoryName, Document, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
   factory_helper.faker = faker;
 
-  let generateFiles = true;
-  let persistFiles = true;
-  if (buildOptions.generateFiles) generateFiles = ("generate" == buildOptions.generateFiles);
-  if (buildOptions.persistFiles) persistFiles = ("persist" == buildOptions.persistFiles);
-
   let projectShortName = unsetProjectName;
   if (buildOptions.projectShortName) if (unsetProjectName != buildOptions.projectShortName) projectShortName = buildOptions.projectShortName;
 
@@ -56,8 +52,7 @@ factory.define(factoryName, Document, buildOptions => {
   let dateUploaded = (null == updator) ? datePosted.clone().subtract(faker.random.number(15), 'days') : updatedDate.clone().subtract(faker.random.number(15), 'days');
   let createdDate = dateUploaded.clone().subtract(faker.random.number(15), 'days');
 
-  let onlyUsePDFs = generateFiles;
-  let docTypeSettings = (onlyUsePDFs) ? { ext: "pdf", mime: "application/pdf" } : docProps. faker.random.arrayElement(docProps);
+  let docTypeSettings = faker.random.arrayElement(docProps);
   let displayName = factory.seq('Document.displayName', (n) => `Test Document ${n}`);
 
   let minioFileSystemFileName = faker.random.number({min:999999999999, max:10000000000000}) + "_" + (faker.random.alphaNumeric(60)).toLowerCase() + "." + docTypeSettings.ext;
@@ -91,7 +86,7 @@ factory.define(factoryName, Document, buildOptions => {
     , delete           : ["project-admin", "project-intake", "project-team", "project-system-admin"]
 
     // Not editable
-    , documentFileName : faker.lorem.sentence().replace(/\.$/g, '') + "." + docTypeSettings.ext
+    , documentFileName : generateOriginalFileName(faker, docTypeSettings.ext)
     , internalOriginalName : minioFileSystemFileName
     , internalURL      : "etl/" + projectShortName + "/" + minioFileSystemFileName
     , internalExt      : docTypeSettings.ext
@@ -117,20 +112,33 @@ factory.define(factoryName, Document, buildOptions => {
     , labels           : distinctLabelsForThisDoc
   };
 
+
+  return attrs;
+});
+
+function generatePhysicalFile(faker, generateFiles, persistFiles, projectIdStr, originalFileName) {
   let templatePath = faker.random.arrayElement([factory_helper.generatedDocSamples.S, factory_helper.generatedDocSamples.M, factory_helper.generatedDocSamples.L]); 
   let stats = fs.statSync(templatePath);
+  let attrs = {
+      internalExt       : "pdf"
+    , internalMine      : "application/pdf" 
+    , internalSize      : stats["size"]
+    , internalOriginalName : originalFileName
+    , displayName       : originalFileName
+    , passedAVCheck     : true
+    , internalURL       : "minio did not succeed"
+  }
 
-  attrs.internalSize = stats["size"];
-  attrs.internalOriginalName = attrs.documentFileName;
-  attrs.displayName = attrs.documentFileName;
-  attrs.passedAVCheck = true;
+  let projectDocTempPath = factory_helper.epicAppTmpBasePath + projectIdStr + path.sep;
+  shell.mkdir('-p', projectDocTempPath);
   
   if (generateFiles) {
     let guid = faker.random.number({min:1000000000000000000, max:9999999999999999999}).toString()  // eg. 6628723481510936576
-    let tempFilePath = uploadDir + guid + "." + docTypeSettings.ext;
+    
+    let tempFilePath = projectDocTempPath + guid + "." + attrs.internalExt;
     fs.copyFileSync(templatePath, tempFilePath);
     MinioController
-    .putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, attrs.project, attrs.documentFileName, tempFilePath)
+    .putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, projectIdStr, originalFileName, tempFilePath)
     .then(async function (minioFile) {
       attrs.internalURL = minioFile.path;
     })
@@ -143,9 +151,15 @@ factory.define(factoryName, Document, buildOptions => {
     });
   }
   return attrs;
-});
+}
+
+function generateOriginalFileName(faker, ext) {
+  return faker.lorem.sentence().replace(/\.$/g, '') + "." + ext;
+}
 
 exports.factory = factory;
 exports.name = factoryName;
 exports.unsetProjectName = unsetProjectName;
 exports.MinioControllerBucket = MinioController.BUCKETS.DOCUMENTS_BUCKET;
+exports.generatePhysicalFile = generatePhysicalFile;
+exports.generateOriginalFileName = generateOriginalFileName;

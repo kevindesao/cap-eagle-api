@@ -30,6 +30,10 @@ const gd = require('./generated_data');
 let isInfoMode = false;
 let isDebugMode = false;
 
+// file generation settings
+let generateFiles = true;
+let persistFiles = true;  // this will consume disk space over time but is essential for debugging
+
 // Used to generate random values in the range [0 to CeilingValue] for correspondingly named objects
 let generatorCeilings = {
     extraUsers: 50
@@ -173,10 +177,18 @@ function generateCommentSetForCommentPeriod(factoryKey, commentPeriod, buildOpti
 function generateDocumentSetForProject(factoryKey, project, buildOptions, projectDocumentsToGen) {
   console.debug("projectDocumentsToGen = " + projectDocumentsToGen);
   return new Promise(function(resolve, reject) {
-    buildOptions.generateFiles = "generate";  // vs "off"
-    buildOptions.persistFiles = "persist";  // vs "off"
+
+    let projectId = factory_helper.ObjectId(project._id);
+    let originalFileName = documentFactory.generateOriginalFileName(faker, "pdf");
+
+    let physicalFileSpecificAttrs = documentFactory.generatePhysicalFile(faker, generateFiles, persistFiles, projectId, originalFileName);
+
     buildOptions.projectShortName = project.shortName;
-    let customDocumentSettings = { documentSource: "PROJECT", project: factory_helper.ObjectId(project._id) };
+
+    let customDocumentSettings = physicalFileSpecificAttrs;
+    customDocumentSettings.documentSource = "PROJECT";
+    customDocumentSettings.project = projectId;
+
     factory.createMany(factoryKey, projectDocumentsToGen, customDocumentSettings, buildOptions).then(documents => {
       resolve(documents);
     });
@@ -186,12 +198,22 @@ function generateDocumentSetForProject(factoryKey, project, buildOptions, projec
 function generateDocumentSetForCommentPeriod(factoryKey, commentPeriod, buildOptions, commentPeriodDocumentsToGen) {
   console.debug("commentPeriodDocumentsToGen = " + commentPeriodDocumentsToGen);
   return new Promise(function(resolve, reject) {
-    buildOptions.generateFiles = "generate";  // vs "off"
-    buildOptions.persistFiles = "persist";  // vs "off"
-  let projectsPool = (buildOptions.pipeline) ? buildOptions.pipeline.projects : null;
-  const parentProject = projectsPool.filter(project => commentPeriod.project == project.id);
-  buildOptions.projectShortName = (1 == parentProject.length) ? parentProject.shortName : documentFactory.unsetProjectName;
-  let customDocumentSettings = { documentSource: "COMMENT", project: factory_helper.ObjectId(commentPeriod.project), _comment: factory_helper.ObjectId(commentPeriod._id) };  // note that the document._comment field actually refers to a commentPeriod id
+
+    let projectId = factory_helper.ObjectId(commentPeriod.project);
+    let commentPeriodId = factory_helper.ObjectId(commentPeriod._id);
+    let originalFileName = documentFactory.generateOriginalFileName(faker, "pdf");
+
+    let physicalFileSpecificAttrs = documentFactory.generatePhysicalFile(faker, generateFiles, persistFiles, projectId, originalFileName);
+
+    let projectsPool = (buildOptions.pipeline) ? buildOptions.pipeline.projects : null;
+    const parentProject = projectsPool.filter(project => projectId == project.id);
+    buildOptions.projectShortName = (1 == parentProject.length) ? parentProject.shortName : documentFactory.unsetProjectName;
+
+    let customDocumentSettings = physicalFileSpecificAttrs;
+    customDocumentSettings.documentSource = "COMMENT";
+    customDocumentSettings.project = projectId;
+    customDocumentSettings._comment = commentPeriodId;  // note that the document._comment field actually refers to a commentPeriod id
+  
     factory.createMany(factoryKey, commentPeriodDocumentsToGen, customDocumentSettings, buildOptions).then(documents => {
       resolve(documents);
     });
