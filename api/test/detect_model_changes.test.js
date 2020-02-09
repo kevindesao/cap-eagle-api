@@ -1,6 +1,12 @@
 'use strict';
 const Promise = require("bluebird");
-Promise.longStackTraces();
+Promise.config({
+    warnings: false,
+    longStackTraces: true,
+    cancellation: false,
+    monitoring: false,
+    asyncHooks: false,
+});
 const { hashElement } = require('folder-hash');
 const _ = require('lodash');
 const fs = require('fs');

@@ -69,7 +69,7 @@ factory.define(factoryName, Document, buildOptions => {
     , project          : projectId
 
     // Tracking
-    //, _comment         : factory_helper.ObjectId()  // field is not present for document source PROJECT, only added when is COMMENT.  see below instead
+    , _comment         : factory_helper.ObjectId()  // field is not present for document source PROJECT, only added when is COMMENT.  see below instead
     , _createdDate     : createdDate
     , _updatedDate     : updatedDate
     , _addedBy         : author.idir
@@ -84,7 +84,7 @@ factory.define(factoryName, Document, buildOptions => {
 
     // Not editable
     , documentFileName : userUploadedFileName
-    //, internalOriginalName : userUploadedFileName  // field is not present for document source PROJECT, only added when is COMMENT.  see below instead
+    , internalOriginalName : userUploadedFileName  // field is not present for document source PROJECT, only added when is COMMENT.  see below instead
     , internalURL      : projectId + "/" + minioFileSystemFileName
     , internalExt      : docTypeSettings.ext
     , internalSize     : faker.random.number({min:20000, max:250000000})  // staff upload some big docx's and pptx's
@@ -109,55 +109,93 @@ factory.define(factoryName, Document, buildOptions => {
     , labels           : distinctLabelsForThisDoc
   };
 
-  if ("COMMENT" == attrs.documentSource) {
-    // these fields are completely absent unless the document comes from a comment
-    attrs._comment = factory_helper.ObjectId();
-    attrs.internalOriginalName = userUploadedFileName;
-  }
-
   return attrs;
 });
 
-function generatePhysicalFile(faker, generateFiles, persistFiles, projectIdStr, originalFileName, documentSource) {
-  let templatePath = faker.random.arrayElement([factory_helper.generatedDocSamples.S, factory_helper.generatedDocSamples.M, factory_helper.generatedDocSamples.L]); 
-  let stats = fs.statSync(templatePath);
-  let attrs = {
-      internalExt       : "pdf"
-    , internalMine      : "application/pdf" 
-    , internalSize      : stats["size"]
-    , displayName       : originalFileName
-    , passedAVCheck     : true
-    , documentFileName  : originalFileName
-  }
+// because documents are so overloaded, sometimes we get fields that shouldn't be there after running physical file generation
+function fixFields(mongooseDoc) {
+  return new Promise(function(resolve, reject) {
+    if ("COMMENT" != mongooseDoc.documentSource) {
+      let command = {$unset: {_comment: 1, internalOriginalName: 1 }};
+      let query = {'_id' : mongooseDoc._id};
+      Document.findOneAndUpdate(query, command, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
+        if (err) {
+          console.log(JSON.stringify(err));
+          return reject(err);
+        }
+        resolve(doc);
+      });
+    } else {
+      resolve(mongooseDoc);
+    }
+  });
+}
 
-  if ("COMMENT" == documentSource) {
-    // these fields are completely absent unless the document comes from a comment
-    attrs.internalOriginalName = originalFileName;
-  }
+function generatePhysicalFile(faker, generateFiles, persistFiles, mongooseDoc) {
+  return new Promise(function(resolve, reject) {
+    let editableDocument = mongooseDoc.toObject();
+    if (editableDocument._id) delete editableDocument._id;
+    if (editableDocument.id) delete editableDocument.id;
+    editableDocument.internalExt = "pdf";
+    editableDocument.internalMime = "application/pdf";
+    editableDocument.passedAVCheck = true;
+    let userUploadedFileName = generateOriginalFileName(faker, editableDocument.internalExt);
+    editableDocument.displayName = userUploadedFileName;
+    editableDocument.documentFileName = userUploadedFileName;
+    let templatePath = faker.random.arrayElement([factory_helper.generatedDocSamples.S, factory_helper.generatedDocSamples.M, factory_helper.generatedDocSamples.L]); 
+    let stats = fs.statSync(templatePath);
+    editableDocument.internalSize = stats["size"];
 
-  let projectDocTempPath = factory_helper.epicAppTmpBasePath + projectIdStr + path.sep;
-  shell.mkdir('-p', projectDocTempPath);
-  
-  if (generateFiles) {
-    let guid = faker.random.number({min:1000000000000000000, max:9999999999999999999}).toString()  // eg. 6628723481510936576
+    if ("COMMENT" == editableDocument.documentSource) {
+      // these fields are completely absent unless the document comes from a comment
+      editableDocument.internalOriginalName = userUploadedFileName;
+    } 
+
+    let projectDocTempPath = factory_helper.epicAppTmpBasePath + editableDocument.project + path.sep;
+    shell.mkdir('-p', projectDocTempPath);
     
-    let tempFilePath = projectDocTempPath + guid + "." + attrs.internalExt;
-    fs.copyFileSync(templatePath, tempFilePath);
-    factory_helper.touchPath(tempFilePath);
-    MinioController
-    .putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, projectIdStr, originalFileName, tempFilePath)
-    .then(async function (minioFile) {
-      attrs.internalURL = minioFile.path;
-    })
-    .catch(function () {
-      return attrs;
-    })
-    .finally(function(){
-      // remove file from temp folder
-      if (!persistFiles) fs.unlinkSync(tempFilePath, () => {});
+    let query = {'_id' : mongooseDoc._id};
+
+    if (generateFiles) {
+      let guid = faker.random.number({min:1000000000000000000, max:9999999999999999999}).toString()  // eg. 6628723481510936576
+      
+      let tempFilePath = projectDocTempPath + guid + "." + editableDocument.internalExt;
+      fs.copyFileSync(templatePath, tempFilePath);
+      factory_helper.touchPath(tempFilePath);
+      MinioController
+      .putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, editableDocument.project, userUploadedFileName, tempFilePath)
+      .then(async function (minioFile) {
+        editableDocument.internalURL = minioFile.path;
+        Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
+          if (err) {
+            console.log(JSON.stringify(err));
+            return reject(err);
+          }
+          return resolve(doc);
+        });
+      })
+      .catch(function () {     
+        Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
+          if (err) {
+            console.log(JSON.stringify(err));
+            return reject(err);
+          }
+          return resolve(doc);
+        });
+      })
+      .finally(function(){
+        // remove file from temp folder
+        if (!persistFiles) fs.unlinkSync(tempFilePath, () => {});
+      });
+    }
+    Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
+      if (err) {
+        console.log(JSON.stringify(err));
+        return reject(err);
+      }
+      return resolve(doc);
     });
-  }
-  return attrs;
+  });
 }
 
 function generateOriginalFileName(faker, ext) {
@@ -169,3 +207,4 @@ exports.name = factoryName;
 exports.MinioControllerBucket = MinioController.BUCKETS.DOCUMENTS_BUCKET;
 exports.generatePhysicalFile = generatePhysicalFile;
 exports.generateOriginalFileName = generateOriginalFileName;
+exports.fixFields = fixFields;

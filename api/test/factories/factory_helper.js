@@ -192,6 +192,10 @@ function endsWithPathSep(pathToCheck) {
     return ((0 < pathToCheck.length) && (path.sep == pathToCheck.slice(-1))) ? pathToCheck : pathToCheck + path.sep;
 }
 
+function editableObjToJSON(documentObject) { // for consistency
+return JSON.stringify(documentObject, null, '\t');
+}
+
 exports.faker = faker;
 exports.getBcCities = getBcCities;
 exports.generateFakePostal = generateFakePostal;
@@ -210,3 +214,4 @@ exports.endsWithPathSep = endsWithPathSep;
 exports.epicAppTmpBasePath = epicAppTmpBasePath;
 exports.touchPath = touchPath;
 exports.hexaDecimal = hexaDecimal;
+exports.editableObjToJSON = editableObjToJSON;

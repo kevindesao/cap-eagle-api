@@ -1,7 +1,13 @@
 'use strict';
 const Promise = require("bluebird");
 const faker = require('faker/locale/en');
-Promise.longStackTraces();
+Promise.config({
+  warnings: false,
+  longStackTraces: true,
+  cancellation: false,
+  monitoring: false,
+  asyncHooks: false,
+});
 const test_helper = require('./test_helper');
 const app = test_helper.app;
 const mongoose = require('mongoose');
@@ -69,6 +75,8 @@ const projectDocumentTemplate = new ft.FactoryTemplate(documentFactory.name, gen
 const commentPeriodDocumentTemplate = new ft.FactoryTemplate(documentFactory.name, generateDocumentSetForCommentPeriod, gc.documentsPerCommentPeriod, uss.commentPeriodDocument);
 const documentRecentActivitiesTemplate = new ft.FactoryTemplate(recentActivityFactory.name, generateRecentActivitiesSetForProjectDocument, 1, uss.recentActivities);
 const commentPeriodRecentActivitiesTemplate = new ft.FactoryTemplate(recentActivityFactory.name, generateRecentActivitiesSetForCommentPeriod, 1, uss.recentActivities);
+
+let emptyPromise = new Promise(function(resolve, reject) { resolve([]); });
 
 // Data generation violates the single purpose principle on purpose.
 // It generates data, saves model to db (mem or real), and outputs the data we generated
@@ -177,19 +185,21 @@ function generateCommentSetForCommentPeriod(factoryKey, commentPeriod, buildOpti
 function generateDocumentSetForProject(factoryKey, project, buildOptions, projectDocumentsToGen) {
   console.debug("projectDocumentsToGen = " + projectDocumentsToGen);
   return new Promise(function(resolve, reject) {
-    let documentSource = "PROJECT";
-    let projectId = factory_helper.ObjectId(project._id);
-    let originalFileName = documentFactory.generateOriginalFileName(faker, "pdf");
-
-    let physicalFileSpecificAttrs = documentFactory.generatePhysicalFile(faker, generateFiles, persistFiles, projectId, originalFileName, documentSource);
-
-    let customDocumentSettings = {
-        documentSource     : documentSource
-      , project            : projectId
-    };
-
+    let customDocumentSettings = {};
+    customDocumentSettings.documentSource = "PROJECT";
+    customDocumentSettings.project = factory_helper.ObjectId(project._id);
+    
     factory.createMany(factoryKey, projectDocumentsToGen, customDocumentSettings, buildOptions).then(documents => {
-      resolve(documents);
+      let physicalDocPromises = [emptyPromise];
+      try {
+        physicalDocPromises = documents.map(document => {
+          return documentFactory.generatePhysicalFile(faker, generateFiles, persistFiles, document)
+          .then(physDocument => documentFactory.fixFields(physDocument));
+        });
+      } catch (e) {
+        console.log(factoryTemplate.factoryKey + " physical file error = '" + e + "'");
+      }
+      resolve(Promise.all(physicalDocPromises));
     });
   });
 };
@@ -197,21 +207,22 @@ function generateDocumentSetForProject(factoryKey, project, buildOptions, projec
 function generateDocumentSetForCommentPeriod(factoryKey, commentPeriod, buildOptions, commentPeriodDocumentsToGen) {
   console.debug("commentPeriodDocumentsToGen = " + commentPeriodDocumentsToGen);
   return new Promise(function(resolve, reject) {
-    let documentSource = "COMMENT";
-    let projectId = factory_helper.ObjectId(commentPeriod.project);
-    let commentPeriodId = factory_helper.ObjectId(commentPeriod._id);
-    let originalFileName = documentFactory.generateOriginalFileName(faker, "pdf");
-
-    // let physicalFileSpecificAttrs = documentFactory.generatePhysicalFile(faker, generateFiles, persistFiles, projectId, originalFileName, documentSource);
-    let physicalFileSpecificAttrs = {};
-
-    let customDocumentSettings = physicalFileSpecificAttrs;
-    customDocumentSettings.documentSource = documentSource;
-    customDocumentSettings.project = projectId;
-    customDocumentSettings._comment = commentPeriodId;  // note that the document._comment field actually refers to a commentPeriod id
+    let customDocumentSettings = {};
+    customDocumentSettings.documentSource = "COMMENT";
+    customDocumentSettings.project = factory_helper.ObjectId(commentPeriod.project);
+    customDocumentSettings._comment = factory_helper.ObjectId(commentPeriod._id);  // note that the document._comment field actually refers to a commentPeriod id
   
     factory.createMany(factoryKey, commentPeriodDocumentsToGen, customDocumentSettings, buildOptions).then(documents => {
-      resolve(documents);
+      let physicalDocPromises = [emptyPromise];
+      try {
+        physicalDocPromises = documents.map(document => {
+          return documentFactory.generatePhysicalFile(faker, generateFiles, persistFiles, document)
+          .then(physDocument => documentFactory.fixFields(physDocument));
+        });
+      } catch (e) {
+        console.log(factoryTemplate.factoryKey + " physical file error = '" + e + "'");
+      }
+      resolve(Promise.all(physicalDocPromises));
     });
   });
 };
@@ -286,7 +297,6 @@ function generateProjects(usersData) {
 
 // lightweight for when access to previously generated users and lists is only required
 function generateChildSets(parents, usersPool, listsPool, factoryTemplate) {
-  let emptyPromise = new Promise(function(resolve, reject) { resolve([]); });
   if (0 == parents.length) return emptyPromise;
   return new Promise(function(resolve, reject) {
     test_helper.dataGenerationSettings.then(genSettings => {
@@ -307,7 +317,7 @@ function generateChildSets(parents, usersPool, listsPool, factoryTemplate) {
       resolve(Promise.all(childGenerationPromises));
     });
   }).catch(error => {
-    console.info(factoryTemplate.factoryKey + "s error:" + error);
+    console.log(factoryTemplate.factoryKey + "s error:" + error);
     reject(error);
   }).finally(function(){
     console.info("Generated all " + factoryTemplate.factoryKey + " sets.");
@@ -340,7 +350,7 @@ function generateChildSetsUsingPipeline(parents, pipeline, factoryTemplate) {
       }
     });
   }).catch(error => {
-    console.info(factoryTemplate.factoryKey + "s error:" + error);
+    console.log(factoryTemplate.factoryKey + "s error:" + error);
     reject(error);
   }).finally(function(){
     console.info("Generated all " + factoryTemplate.factoryKey + " sets.");
@@ -364,7 +374,7 @@ function generateChildSet(parent, buildOptions, factoryTemplate) {
       }
     });
   }).catch(error => {
-    console.info(factoryTemplate.factoryKey + " set generation error:" + error);
+    console.log(factoryTemplate.factoryKey + " set generation error:" + error);
     reject(error);
   }).finally(function(){
     console.info("Generated " + factoryTemplate.factoryKey + " set.");
