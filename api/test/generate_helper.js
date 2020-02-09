@@ -177,17 +177,16 @@ function generateCommentSetForCommentPeriod(factoryKey, commentPeriod, buildOpti
 function generateDocumentSetForProject(factoryKey, project, buildOptions, projectDocumentsToGen) {
   console.debug("projectDocumentsToGen = " + projectDocumentsToGen);
   return new Promise(function(resolve, reject) {
-
+    let documentSource = "PROJECT";
     let projectId = factory_helper.ObjectId(project._id);
     let originalFileName = documentFactory.generateOriginalFileName(faker, "pdf");
 
-    let physicalFileSpecificAttrs = documentFactory.generatePhysicalFile(faker, generateFiles, persistFiles, projectId, originalFileName);
+    let physicalFileSpecificAttrs = documentFactory.generatePhysicalFile(faker, generateFiles, persistFiles, projectId, originalFileName, documentSource);
 
-    buildOptions.projectShortName = project.shortName;
-
-    let customDocumentSettings = physicalFileSpecificAttrs;
-    customDocumentSettings.documentSource = "PROJECT";
-    customDocumentSettings.project = projectId;
+    let customDocumentSettings = {
+        documentSource     : documentSource
+      , project            : projectId
+    };
 
     factory.createMany(factoryKey, projectDocumentsToGen, customDocumentSettings, buildOptions).then(documents => {
       resolve(documents);
@@ -198,19 +197,16 @@ function generateDocumentSetForProject(factoryKey, project, buildOptions, projec
 function generateDocumentSetForCommentPeriod(factoryKey, commentPeriod, buildOptions, commentPeriodDocumentsToGen) {
   console.debug("commentPeriodDocumentsToGen = " + commentPeriodDocumentsToGen);
   return new Promise(function(resolve, reject) {
-
+    let documentSource = "COMMENT";
     let projectId = factory_helper.ObjectId(commentPeriod.project);
     let commentPeriodId = factory_helper.ObjectId(commentPeriod._id);
     let originalFileName = documentFactory.generateOriginalFileName(faker, "pdf");
 
-    let physicalFileSpecificAttrs = documentFactory.generatePhysicalFile(faker, generateFiles, persistFiles, projectId, originalFileName);
-
-    let projectsPool = (buildOptions.pipeline) ? buildOptions.pipeline.projects : null;
-    const parentProject = projectsPool.filter(project => projectId == project.id);
-    buildOptions.projectShortName = (1 == parentProject.length) ? parentProject.shortName : documentFactory.unsetProjectName;
+    // let physicalFileSpecificAttrs = documentFactory.generatePhysicalFile(faker, generateFiles, persistFiles, projectId, originalFileName, documentSource);
+    let physicalFileSpecificAttrs = {};
 
     let customDocumentSettings = physicalFileSpecificAttrs;
-    customDocumentSettings.documentSource = "COMMENT";
+    customDocumentSettings.documentSource = documentSource;
     customDocumentSettings.project = projectId;
     customDocumentSettings._comment = commentPeriodId;  // note that the document._comment field actually refers to a commentPeriod id
   

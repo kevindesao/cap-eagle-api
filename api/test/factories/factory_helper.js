@@ -21,7 +21,7 @@ function generateFakePerson(firstName, middleName, lastName) {
     let full = first + " " + (("" == middle) ? "" : faker.random.arrayElement(["", middle.charAt(0) + ". "])) + last;
     let email = first.toLowerCase() + (faker.random.boolean() ? "." : "") + last.toLowerCase() + "@" + faker.internet.email().split("@").pop();
     // Active Directory Username, is stored in db as "idir\\sampleidir"
-    let idir = "idir\\\\" + ((first.charAt(0) + last).toLowerCase()).substring(0,idirMaxAllowedChars);
+    let idir = "idir\\" + ((first.charAt(0) + last).toLowerCase()).substring(0,idirMaxAllowedChars);
     let phoneNumber = generateEpicFormatPhoneNumber();
     let faxNumber = generateEpicFormatPhoneNumber();
     let cellPhoneNumber = generateEpicFormatPhoneNumber();
@@ -209,3 +209,4 @@ exports.generatePrerequisitePdfs = generatePrerequisitePdfs;
 exports.endsWithPathSep = endsWithPathSep;
 exports.epicAppTmpBasePath = epicAppTmpBasePath;
 exports.touchPath = touchPath;
+exports.hexaDecimal = hexaDecimal;

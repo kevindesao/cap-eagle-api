@@ -34,6 +34,8 @@ describe('Generate Test Data', () => {
               done();
             }
 
+            console.log('documents[0]: [' + documents[0] + ']');
+            
             generatedData.report();
             projects.map((project) => {
               gh.info('Project [id, name]: [' + project._id + ', ' + project.name + ']');

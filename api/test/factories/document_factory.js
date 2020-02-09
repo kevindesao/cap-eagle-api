@@ -10,8 +10,6 @@ let faker = require('faker/locale/en');
 
 const factoryName = Document.modelName;
 
-const unsetProjectName = "the-project-name";
-
 const docProps = [
     { ext: "jpg", mime: "image/jpeg" }
   , { ext: "jpeg", mime: "image/jpeg" }
@@ -31,9 +29,6 @@ const docProps = [
 factory.define(factoryName, Document, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
   factory_helper.faker = faker;
-
-  let projectShortName = unsetProjectName;
-  if (buildOptions.projectShortName) if (unsetProjectName != buildOptions.projectShortName) projectShortName = buildOptions.projectShortName;
 
   let listsPool = (buildOptions.pipeline) ? 
     (buildOptions.pipeline.lists) ? buildOptions.pipeline.lists : null :
@@ -55,8 +50,6 @@ factory.define(factoryName, Document, buildOptions => {
   let docTypeSettings = faker.random.arrayElement(docProps);
   let displayName = factory.seq('Document.displayName', (n) => `Test Document ${n}`);
 
-  let minioFileSystemFileName = faker.random.number({min:999999999999, max:10000000000000}) + "_" + (faker.random.alphaNumeric(60)).toLowerCase() + "." + docTypeSettings.ext;
-
   let numberOfLabels = faker.random.number(5);
   let distinctLabelsForThisDoc = [];
   for (let i = 0; i < numberOfLabels, i++;) {
@@ -65,14 +58,18 @@ factory.define(factoryName, Document, buildOptions => {
     distinctLabelsForThisDoc.push(label);
   }
   
+  let projectId = factory_helper.ObjectId();
+  let userUploadedFileName = generateOriginalFileName(faker, docTypeSettings.ext);
+  let minioFileSystemFileName = factory_helper.hexaDecimal(32).toLocaleLowerCase() + "." + docTypeSettings.ext;
+  let eaoStatus = faker.random.arrayElement(["", "Published", "Rejected"]);
 
   let attrs = {
       _id              : factory_helper.ObjectId()
 
-    , project          : factory_helper.ObjectId()
+    , project          : projectId
 
     // Tracking
-    , _comment         : factory_helper.ObjectId()
+    //, _comment         : factory_helper.ObjectId()  // field is not present for document source PROJECT, only added when is COMMENT.  see below instead
     , _createdDate     : createdDate
     , _updatedDate     : updatedDate
     , _addedBy         : author.idir
@@ -81,14 +78,14 @@ factory.define(factoryName, Document, buildOptions => {
 
     // Note: Default on tag property is purely for display only, they have no real effect on the model
     // This must be done in the code.
-    , read             : ["public", "project-admin", "project-intake", "project-team", "project-system-admin"]
-    , write            : ["project-admin", "project-intake", "project-team", "project-system-admin"]
-    , delete           : ["project-admin", "project-intake", "project-team", "project-system-admin"]
+    , read             : ("Published" == eaoStatus) ? ["public", "sysadmin", "staff"] : ["sysadmin", "staff"] 
+    , write            : ["sysadmin", "staff"]
+    , delete           : ["sysadmin", "staff"]
 
     // Not editable
-    , documentFileName : generateOriginalFileName(faker, docTypeSettings.ext)
-    , internalOriginalName : minioFileSystemFileName
-    , internalURL      : "etl/" + projectShortName + "/" + minioFileSystemFileName
+    , documentFileName : userUploadedFileName
+    //, internalOriginalName : userUploadedFileName  // field is not present for document source PROJECT, only added when is COMMENT.  see below instead
+    , internalURL      : projectId + "/" + minioFileSystemFileName
     , internalExt      : docTypeSettings.ext
     , internalSize     : faker.random.number({min:20000, max:250000000})  // staff upload some big docx's and pptx's
     , passedAVCheck    : (faker.random.number(100) < 5)  // 5% fail
@@ -107,26 +104,35 @@ factory.define(factoryName, Document, buildOptions => {
     , documentAuthor   : author.fullName
     , documentAuthorType   : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(authors))
     , projectPhase     : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(projectPhases))
-    , eaoStatus        : faker.random.arrayElement(["", "Published", "Rejected"])
+    , eaoStatus        : eaoStatus
     , keywords         : ""
     , labels           : distinctLabelsForThisDoc
   };
 
+  if ("COMMENT" == attrs.documentSource) {
+    // these fields are completely absent unless the document comes from a comment
+    attrs._comment = factory_helper.ObjectId();
+    attrs.internalOriginalName = userUploadedFileName;
+  }
 
   return attrs;
 });
 
-function generatePhysicalFile(faker, generateFiles, persistFiles, projectIdStr, originalFileName) {
+function generatePhysicalFile(faker, generateFiles, persistFiles, projectIdStr, originalFileName, documentSource) {
   let templatePath = faker.random.arrayElement([factory_helper.generatedDocSamples.S, factory_helper.generatedDocSamples.M, factory_helper.generatedDocSamples.L]); 
   let stats = fs.statSync(templatePath);
   let attrs = {
       internalExt       : "pdf"
     , internalMine      : "application/pdf" 
     , internalSize      : stats["size"]
-    , internalOriginalName : originalFileName
     , displayName       : originalFileName
     , passedAVCheck     : true
-    , internalURL       : "minio did not succeed"
+    , documentFileName  : originalFileName
+  }
+
+  if ("COMMENT" == documentSource) {
+    // these fields are completely absent unless the document comes from a comment
+    attrs.internalOriginalName = originalFileName;
   }
 
   let projectDocTempPath = factory_helper.epicAppTmpBasePath + projectIdStr + path.sep;
@@ -160,7 +166,6 @@ function generateOriginalFileName(faker, ext) {
 
 exports.factory = factory;
 exports.name = factoryName;
-exports.unsetProjectName = unsetProjectName;
 exports.MinioControllerBucket = MinioController.BUCKETS.DOCUMENTS_BUCKET;
 exports.generatePhysicalFile = generatePhysicalFile;
 exports.generateOriginalFileName = generateOriginalFileName;
