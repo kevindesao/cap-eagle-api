@@ -138,6 +138,7 @@ function generatePhysicalFile(faker, generateFiles, persistFiles, mongooseDoc) {
     if (editableDocument.id) delete editableDocument.id;
     editableDocument.internalExt = "pdf";
     editableDocument.internalMime = "application/pdf";
+    editableDocument.internalURL = editableDocument.project + "/" + factory_helper.hexaDecimal(32).toLocaleLowerCase() + "." + editableDocument.internalExt;
     editableDocument.passedAVCheck = true;
     let userUploadedFileName = generateOriginalFileName(faker, editableDocument.internalExt);
     editableDocument.displayName = userUploadedFileName;
