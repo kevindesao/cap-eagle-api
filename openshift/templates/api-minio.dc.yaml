@@ -46,7 +46,7 @@ objects:
                 - name: MINIO_CONFIG_DIR
                   value: /tmp
                 - name: MINIO_DATA_DIR
-                  value: /opt/minio/data
+                  value: ${MINIO_DATA_DIR}
               image: ${OPENSHIFT_REGISTRY}/${MINIO_IMAGE_NAMESPACE}/${MINIO_IMAGE_NAME}:${MINIO_IMAGE_TAG}
               imagePullPolicy: Always
               name: ${NAME}
@@ -197,4 +197,9 @@ parameters:
   displayName: Storage Provider
   description: Storage provider to use for physical volume claim.
   value: kubernetes.io/netapp
+  required: true
+- name: MINIO_DATA_DIR
+  displayName: Minio Data Dir
+  description: Data directory for Minio to use.
+  value: /opt/minio/data
   required: true
