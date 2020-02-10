@@ -167,7 +167,7 @@ function generatePhysicalFile(faker, generateFiles, persistFiles, mongooseDoc) {
       .putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, editableDocument.project, userUploadedFileName, tempFilePath)
       .then(async function (minioFile) {
         editableDocument.internalURL = minioFile.path;
-        console.log("Successfully uploaded file to " + editableDocument.internalURL);
+        // console.log("Successfully uploaded file to " + editableDocument.internalURL);
         Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
           // if (err) {
           //   console.log(JSON.stringify(err));
@@ -177,7 +177,7 @@ function generatePhysicalFile(faker, generateFiles, persistFiles, mongooseDoc) {
         });
       })
       .catch(function (error) {
-        console.log(error);
+        // console.log(error);
         Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
           // if (err) {
           //   console.log(JSON.stringify(err));
