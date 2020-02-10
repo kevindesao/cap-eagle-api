@@ -34,8 +34,8 @@ const ft = require('./factory_template');
 const gd = require('./generated_data');
 
 // logging levels
-let isInfoMode = false;
-let isDebugMode = false;
+let isInfoMode = _.isEmpty(process.env.LOGGING_INFO) ? false : process.env.LOGGING_INFO;
+let isDebugMode = _.isEmpty(process.env.LOGGING_DEBUG) ? false : process.env.LOGGING_DEBUG;
 
 // file generation settings
 let generateFiles = _.isEmpty(process.env.GENERATE_FILES) ? true : process.env.GENERATE_FILES;
