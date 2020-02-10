@@ -119,10 +119,10 @@ function fixFields(mongooseDoc) {
       let command = {$unset: {_comment: 1, internalOriginalName: 1 }};
       let query = {'_id' : mongooseDoc._id};
       Document.findOneAndUpdate(query, command, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
-        if (err) {
-          console.log(JSON.stringify(err));
-          return reject(err);
-        }
+        // if (err) {
+        //   console.log(JSON.stringify(err));
+        //   return reject(err);
+        // }
         resolve(doc);
       });
     } else {
@@ -169,20 +169,20 @@ function generatePhysicalFile(faker, generateFiles, persistFiles, mongooseDoc) {
         editableDocument.internalURL = minioFile.path;
         console.log("Successfully uploaded file to " + editableDocument.internalURL);
         Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
-          if (err) {
-            console.log(JSON.stringify(err));
-            return reject(err);
-          }
+          // if (err) {
+          //   console.log(JSON.stringify(err));
+          //   return reject(err);
+          // }
           return resolve(doc);
         });
       })
       .catch(function (error) {
         console.log(error);
         Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
-          if (err) {
-            console.log(JSON.stringify(err));
-            return reject(err);
-          }
+          // if (err) {
+          //   console.log(JSON.stringify(err));
+          //   return reject(err);
+          // }
           return resolve(doc);
         });
       })
@@ -192,10 +192,10 @@ function generatePhysicalFile(faker, generateFiles, persistFiles, mongooseDoc) {
       });
     }
     Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
-      if (err) {
-        console.log(JSON.stringify(err));
-        return reject(err);
-      }
+      // if (err) {
+      //   console.log(JSON.stringify(err));
+      //   return reject(err);
+      // }
       return resolve(doc);
     });
   });
