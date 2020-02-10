@@ -13,7 +13,10 @@ const app = test_helper.app;
 const mongoose = require('mongoose');
 mongoose.Promise = require('bluebird'); // for extra debugging capabilities
 //mongoose.Promise = global.Promise;  // without debugging extras
+const _ = require('lodash');
 require('../helpers/models/audit');
+require('../helpers/models/user');
+require('../helpers/models/project');
 const factory = require('factory-girl').factory;
 const factory_helper = require('./factories/factory_helper');
 //the following include statements populate the 'factories' collection of factory-girl's singleton factory object
@@ -27,8 +30,6 @@ const commentPeriodFactory = require("./factories/comment_period_factory");
 const commentFactory = require("./factories/comment_factory");
 const documentFactory = require("./factories/document_factory");
 const recentActivityFactory = require("./factories/recent_activity_factory");
-require('../helpers/models/user');
-require('../helpers/models/project');
 const ft = require('./factory_template');
 const gd = require('./generated_data');
 
@@ -37,8 +38,8 @@ let isInfoMode = false;
 let isDebugMode = false;
 
 // file generation settings
-let generateFiles = true;
-let persistFiles = true;  // this will consume disk space over time but is essential for debugging
+let generateFiles = _.isEmpty(process.env.GENERATE_FILES) ? true : process.env.GENERATE_FILES;
+let persistFiles = _.isEmpty(process.env.PERSIST_FILES) ? false : process.env.PERSIST_FILES;  // this will consume disk space over time but is essential for debugging
 
 // Used to generate random values in the range [0 to CeilingValue] for correspondingly named objects
 let generatorCeilings = {
