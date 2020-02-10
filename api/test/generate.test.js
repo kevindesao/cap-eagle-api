@@ -1,6 +1,12 @@
 'use strict';
 const Promise = require("bluebird");
-Promise.longStackTraces();
+Promise.config({
+  warnings: false,
+  longStackTraces: true,
+  cancellation: false,
+  monitoring: false,
+  asyncHooks: false,
+});
 const test_helper = require('./test_helper');
 const factory_helper = require('./factories/factory_helper');
 const request = require('supertest');
@@ -33,7 +39,7 @@ describe('Generate Test Data', () => {
               expect(1).toEqual(1);
               done();
             }
-
+            
             generatedData.report();
             projects.map((project) => {
               gh.info('Project [id, name]: [' + project._id + ', ' + project.name + ']');

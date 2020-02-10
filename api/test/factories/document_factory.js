@@ -10,8 +10,6 @@ let faker = require('faker/locale/en');
 
 const factoryName = Document.modelName;
 
-const unsetProjectName = "the-project-name";
-
 const docProps = [
     { ext: "jpg", mime: "image/jpeg" }
   , { ext: "jpeg", mime: "image/jpeg" }
@@ -31,9 +29,6 @@ const docProps = [
 factory.define(factoryName, Document, buildOptions => {
   if (buildOptions.faker) faker = buildOptions.faker;
   factory_helper.faker = faker;
-
-  let projectShortName = unsetProjectName;
-  if (buildOptions.projectShortName) if (unsetProjectName != buildOptions.projectShortName) projectShortName = buildOptions.projectShortName;
 
   let listsPool = (buildOptions.pipeline) ? 
     (buildOptions.pipeline.lists) ? buildOptions.pipeline.lists : null :
@@ -55,8 +50,6 @@ factory.define(factoryName, Document, buildOptions => {
   let docTypeSettings = faker.random.arrayElement(docProps);
   let displayName = factory.seq('Document.displayName', (n) => `Test Document ${n}`);
 
-  let minioFileSystemFileName = faker.random.number({min:999999999999, max:10000000000000}) + "_" + (faker.random.alphaNumeric(60)).toLowerCase() + "." + docTypeSettings.ext;
-
   let numberOfLabels = faker.random.number(5);
   let distinctLabelsForThisDoc = [];
   for (let i = 0; i < numberOfLabels, i++;) {
@@ -65,14 +58,18 @@ factory.define(factoryName, Document, buildOptions => {
     distinctLabelsForThisDoc.push(label);
   }
   
+  let projectId = factory_helper.ObjectId();
+  let userUploadedFileName = generateOriginalFileName(faker, docTypeSettings.ext);
+  let minioFileSystemFileName = factory_helper.hexaDecimal(32).toLocaleLowerCase() + "." + docTypeSettings.ext;
+  let eaoStatus = faker.random.arrayElement(["", "Published", "Rejected"]);
 
   let attrs = {
       _id              : factory_helper.ObjectId()
 
-    , project          : factory_helper.ObjectId()
+    , project          : projectId
 
     // Tracking
-    , _comment         : factory_helper.ObjectId()
+    , _comment         : factory_helper.ObjectId()  // field is not present for document source PROJECT, only added when is COMMENT.  see below instead
     , _createdDate     : createdDate
     , _updatedDate     : updatedDate
     , _addedBy         : author.idir
@@ -81,14 +78,14 @@ factory.define(factoryName, Document, buildOptions => {
 
     // Note: Default on tag property is purely for display only, they have no real effect on the model
     // This must be done in the code.
-    , read             : ["public", "project-admin", "project-intake", "project-team", "project-system-admin"]
-    , write            : ["project-admin", "project-intake", "project-team", "project-system-admin"]
-    , delete           : ["project-admin", "project-intake", "project-team", "project-system-admin"]
+    , read             : ("Published" == eaoStatus) ? ["public", "sysadmin", "staff"] : ["sysadmin", "staff"] 
+    , write            : ["sysadmin", "staff"]
+    , delete           : ["sysadmin", "staff"]
 
     // Not editable
-    , documentFileName : generateOriginalFileName(faker, docTypeSettings.ext)
-    , internalOriginalName : minioFileSystemFileName
-    , internalURL      : "etl/" + projectShortName + "/" + minioFileSystemFileName
+    , documentFileName : userUploadedFileName
+    , internalOriginalName : userUploadedFileName  // field is not present for document source PROJECT, only added when is COMMENT.  see below instead
+    , internalURL      : projectId + "/" + minioFileSystemFileName
     , internalExt      : docTypeSettings.ext
     , internalSize     : faker.random.number({min:20000, max:250000000})  // staff upload some big docx's and pptx's
     , passedAVCheck    : (faker.random.number(100) < 5)  // 5% fail
@@ -107,51 +104,101 @@ factory.define(factoryName, Document, buildOptions => {
     , documentAuthor   : author.fullName
     , documentAuthorType   : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(authors))
     , projectPhase     : factory_helper.ObjectId(factory_helper.getRandomExistingMongoId(projectPhases))
-    , eaoStatus        : faker.random.arrayElement(["", "Published", "Rejected"])
+    , eaoStatus        : eaoStatus
     , keywords         : ""
     , labels           : distinctLabelsForThisDoc
   };
 
-
   return attrs;
 });
 
-function generatePhysicalFile(faker, generateFiles, persistFiles, projectIdStr, originalFileName) {
-  let templatePath = faker.random.arrayElement([factory_helper.generatedDocSamples.S, factory_helper.generatedDocSamples.M, factory_helper.generatedDocSamples.L]); 
-  let stats = fs.statSync(templatePath);
-  let attrs = {
-      internalExt       : "pdf"
-    , internalMine      : "application/pdf" 
-    , internalSize      : stats["size"]
-    , internalOriginalName : originalFileName
-    , displayName       : originalFileName
-    , passedAVCheck     : true
-    , internalURL       : "minio did not succeed"
-  }
+// because documents are so overloaded, sometimes we get fields that shouldn't be there after running physical file generation
+function fixFields(mongooseDoc) {
+  return new Promise(function(resolve, reject) {
+    if ("COMMENT" != mongooseDoc.documentSource) {
+      let command = {$unset: {_comment: 1, internalOriginalName: 1 }};
+      let query = {'_id' : mongooseDoc._id};
+      Document.findOneAndUpdate(query, command, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
+        // if (err) {
+        //   console.log(JSON.stringify(err));
+        //   return reject(err);
+        // }
+        resolve(doc);
+      });
+    } else {
+      resolve(mongooseDoc);
+    }
+  });
+}
 
-  let projectDocTempPath = factory_helper.epicAppTmpBasePath + projectIdStr + path.sep;
-  shell.mkdir('-p', projectDocTempPath);
-  
-  if (generateFiles) {
-    let guid = faker.random.number({min:1000000000000000000, max:9999999999999999999}).toString()  // eg. 6628723481510936576
+function generatePhysicalFile(faker, generateFiles, persistFiles, mongooseDoc) {
+  return new Promise(function(resolve, reject) {
+    let editableDocument = mongooseDoc.toObject();
+    if (editableDocument._id) delete editableDocument._id;
+    if (editableDocument.id) delete editableDocument.id;
+    editableDocument.internalExt = "pdf";
+    editableDocument.internalMime = "application/pdf";
+    editableDocument.internalURL = editableDocument.project + "/" + factory_helper.hexaDecimal(32).toLocaleLowerCase() + "." + editableDocument.internalExt;
+    editableDocument.passedAVCheck = true;
+    let userUploadedFileName = generateOriginalFileName(faker, editableDocument.internalExt);
+    editableDocument.displayName = userUploadedFileName;
+    editableDocument.documentFileName = userUploadedFileName;
+    let templatePath = faker.random.arrayElement([factory_helper.generatedDocSamples.S, factory_helper.generatedDocSamples.M, factory_helper.generatedDocSamples.L]); 
+    let stats = fs.statSync(templatePath);
+    editableDocument.internalSize = stats["size"];
+
+    if ("COMMENT" == editableDocument.documentSource) {
+      // these fields are completely absent unless the document comes from a comment
+      editableDocument.internalOriginalName = userUploadedFileName;
+    } 
+
+    let projectDocTempPath = factory_helper.epicAppTmpBasePath + editableDocument.project + path.sep;
+    shell.mkdir('-p', projectDocTempPath);
     
-    let tempFilePath = projectDocTempPath + guid + "." + attrs.internalExt;
-    fs.copyFileSync(templatePath, tempFilePath);
-    factory_helper.touchPath(tempFilePath);
-    MinioController
-    .putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, projectIdStr, originalFileName, tempFilePath)
-    .then(async function (minioFile) {
-      attrs.internalURL = minioFile.path;
-    })
-    .catch(function () {
-      return attrs;
-    })
-    .finally(function(){
-      // remove file from temp folder
-      if (!persistFiles) fs.unlinkSync(tempFilePath, () => {});
+    let query = {'_id' : mongooseDoc._id};
+
+    if (generateFiles) {
+      let guid = faker.random.number({min:1000000000000000000, max:9999999999999999999}).toString()  // eg. 6628723481510936576
+      
+      let tempFilePath = projectDocTempPath + guid + "." + editableDocument.internalExt;
+      fs.copyFileSync(templatePath, tempFilePath);
+      factory_helper.touchPath(tempFilePath);
+      return MinioController
+      .putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, editableDocument.project, userUploadedFileName, tempFilePath)
+      .then(async function (minioFile) {
+        editableDocument.internalURL = minioFile.path;
+        // console.log("Successfully uploaded file to " + editableDocument.internalURL);
+        Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
+          // if (err) {
+          //   console.log(JSON.stringify(err));
+          //   return reject(err);
+          // }
+          return resolve(doc);
+        });
+      })
+      .catch(function (error) {
+        // console.log(error);
+        Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
+          // if (err) {
+          //   console.log(JSON.stringify(err));
+          //   return reject(err);
+          // }
+          return resolve(doc);
+        });
+      })
+      .finally(function(){
+        // remove file from temp folder
+        if (!persistFiles) fs.unlinkSync(tempFilePath, () => {});
+      });
+    }
+    Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
+      // if (err) {
+      //   console.log(JSON.stringify(err));
+      //   return reject(err);
+      // }
+      return resolve(doc);
     });
-  }
-  return attrs;
+  });
 }
 
 function generateOriginalFileName(faker, ext) {
@@ -160,7 +207,7 @@ function generateOriginalFileName(faker, ext) {
 
 exports.factory = factory;
 exports.name = factoryName;
-exports.unsetProjectName = unsetProjectName;
 exports.MinioControllerBucket = MinioController.BUCKETS.DOCUMENTS_BUCKET;
 exports.generatePhysicalFile = generatePhysicalFile;
 exports.generateOriginalFileName = generateOriginalFileName;
+exports.fixFields = fixFields;
