@@ -108,6 +108,7 @@ objects:
       resources:
         requests:
           storage: ${LOCAL_STORAGE_SIZE}
+      storageClassName: ${STORAGE_CLASS}
   - apiVersion: v1
     kind: Service
     spec:
