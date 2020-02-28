@@ -62,7 +62,7 @@ factory.define(factoryName, List, buildOptions => {
     , type         : type
     , item         : null
     , guid         : factory_helper.ObjectId()
-    , read         : ["public"]
+    , read         : ["public", "sysadmin", "staff"]
   };
   return attrs;
 });

@@ -244,9 +244,9 @@ factory.define(factoryName, Project, buildOptions =>{
         , groups                  : factory_helper.ObjectId()
 
         // Permissions
-        , read                    : ["sysadmin", "staff", "project-proponent", "project-admin", "system-eao", "project-intake", "project-team", "project-system-admin", "public"]
-        , write                   : ["sysadmin", "staff", "project-admin", "project-intake", "project-team", "project-system-admin"]
-        , delete                  : ["sysadmin", "staff", "project-system-admin", "project-intake"]
+        , read                    : ["sysadmin", "project-proponent", "project-system-admin", "public"]
+        , write                   : ["sysadmin", "project-system-admin"]
+        , delete                  : ["sysadmin", "project-system-admin"]
     }
     return attrs;
 

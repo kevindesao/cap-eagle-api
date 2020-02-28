@@ -17,9 +17,9 @@ factory.define(factoryName, Audit, buildOptions => {
         , performedBy: ''
         , timestamp: Date.now()
         // Permissions
-        , write: '["project-system-admin"]'
-        , read: '["project-system-admin"]'
-        , delete: '["project-system-admin"]'
+        , write: []
+        , read: []
+        , delete: []
     }
     return attrs;
 });
