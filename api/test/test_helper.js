@@ -14,6 +14,7 @@ const fh = require('./factories/factory_helper');
 const projectGenerationTime = 5 * 1000;
 const prerequisiteGenerationTime = 30 * 1000;
 const app = express();
+let defaultLog = app_helper.defaultLog;
 const defaultNumberOfProjects = 1;
 let performMigrations = false;  // migrations used to be necessary to load the lists but we now load them directly via the list factory
 let mongoServer;
@@ -175,9 +176,9 @@ async function mongooseConnect() {
     }
     checkMongoUri();
     await mongoose.connect(mongoUri, mongooseOpts, (err) => {
-      if (err) console.error(err);
+      if (err) defaultLog.error(err);
     });
-    console.log(mongoUri);
+    defaultLog.info(mongoUri);
   }
 };
 
@@ -195,7 +196,7 @@ async function checkMigrations(callback) {
     options.auth = auth;
   }
   MongoClient.connect(mongoUri, options, function(err, db) {
-    if (err) console.error(err);
+    if (err) defaultLog.error(err);
     var dbo = db.db(app_helper.dbName);
     const runMigrations = 0;
     const migrationsCollectionName = "migrations";
@@ -203,8 +204,8 @@ async function checkMigrations(callback) {
     dbo.listCollections({name: mcn}).toArray(function(err, collInfos) {
       if (0 == collInfos.length) {
         dbo.createCollection(mcn, function(err, res) {
-          if (err) if (0 == err.message.includes("Cannot use a session that has ended")) console.error(err);
-          console.log(mcn + " collection created");
+          if (err) if (0 == err.message.includes("Cannot use a session that has ended")) defaultLog.error(err);
+          defaultLog.verbose(mcn + " collection created");
           db.close();
           callback(runMigrations);
         });
@@ -212,7 +213,7 @@ async function checkMigrations(callback) {
       }
     });
     dbo.collection(mcn).countDocuments({}, function(err, numOfDocs){
-      if (err) console.error(err);
+      if (err) defaultLog.error(err);
       db.close();
       callback(numOfDocs);
     });
@@ -226,7 +227,7 @@ async function runMigrations(migrationCount) {
   if (-1 == mongoUri.indexOf("localhost")) return;  // TODO make this work in both memory-server instances and on deployments via database.json
   if (0 < migrationCount) return;
   await exec("./node_modules/db-migrate/bin/db-migrate up", function(err, stdout, stderr) {
-    if (err) console.error(err);
+    if (err) defaultLog.error(err);
   });
 }
 

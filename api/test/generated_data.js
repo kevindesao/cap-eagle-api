@@ -3,6 +3,9 @@
  * from previous stages, and so that each factory can pass along its results.
  */
 
+const app_helper = require('../../app_helper');
+let defaultLog = app_helper.defaultLog;
+
 class GeneratedData {
     constructor() {
         this.audit = null;
@@ -20,7 +23,7 @@ class GeneratedData {
     }
 
     report() {
-        console.log('\n\n \
+        defaultLog.info('\n\n \
 ******* Generation Statistics *******\n \
 *   ' + ((null == this.audit) ? 0 : this.audit.length) + ' Audits\n \
 *   ' + ((null == this.lists) ? 0 : this.lists.length) + ' Lists\n \

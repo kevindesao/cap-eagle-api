@@ -5,12 +5,22 @@ var winston       = require('winston');
 
 // Logging middleware
 winston.loggers.add('default', {
+  file: {
+    level: 'info',
+    filename: `/tmp/epic-app.log`,
+    handleExceptions: true,
+    json: true,
+    maxsize: 5242880, // 5MB
+    maxFiles: 5,
+    colorize: false,
+    label: 'default',
+  },
   console: {
-      colorize: 'true',
-      handleExceptions: true,
-      json: false,
-      level: 'silly',
-      label: 'default',
+    colorize: 'true',
+    handleExceptions: true,
+    json: false,
+    level: 'info',
+    label: 'default',
   }
 });
 var defaultLog = winston.loggers.get('default');

@@ -1,5 +1,6 @@
 'use strict';
 const Promise = require("bluebird");
+const app_helper = require('../../app_helper');
 const faker = require('faker/locale/en');
 Promise.config({
   warnings: false,
@@ -32,6 +33,7 @@ const documentFactory = require("./factories/document_factory");
 const recentActivityFactory = require("./factories/recent_activity_factory");
 const ft = require('./factory_template');
 const gd = require('./generated_data');
+let defaultLog = app_helper.defaultLog;
 
 // logging levels
 let isInfoMode = _.isEmpty(process.env.LOGGING_INFO) ? false : process.env.LOGGING_INFO;
@@ -149,7 +151,7 @@ function generateEntireDatabase(usersData) {
 };
 
 function generateGroupSetForProject(factoryKey, project, buildOptions, groupsToGen) {
-  console.debug("groupsToGen = " + groupsToGen);
+  defaultLog.debug("groupsToGen = " + groupsToGen);
   return new Promise(function(resolve, reject) {
     let customGroupSettings = { project: factory_helper.ObjectId(project._id) };
     factory.createMany(factoryKey, groupsToGen, customGroupSettings, buildOptions).then(groups => {
@@ -164,7 +166,7 @@ function generateGroupSetForProject(factoryKey, project, buildOptions, groupsToG
 };
 
 function generateCommentPeriodSetForProject(factoryKey, project, buildOptions, commentPeriodsToGen) {
-  console.debug("commentPeriodsToGen = " + commentPeriodsToGen);
+  defaultLog.debug("commentPeriodsToGen = " + commentPeriodsToGen);
   return new Promise(function(resolve, reject) {
     let customCommentPeriodSettings = { project: factory_helper.ObjectId(project._id) };
     factory.createMany(factoryKey, commentPeriodsToGen, customCommentPeriodSettings, buildOptions).then(commentPeriods => {
@@ -174,7 +176,7 @@ function generateCommentPeriodSetForProject(factoryKey, project, buildOptions, c
 };
 
 function generateCommentSetForCommentPeriod(factoryKey, commentPeriod, buildOptions, commentsToGen) {
-  console.debug("commentsToGen = " + commentsToGen);
+  defaultLog.debug("commentsToGen = " + commentsToGen);
   return new Promise(function(resolve, reject) {
     let customCommentSettings = { commentPeriod: factory_helper.ObjectId(commentPeriod._id) };
     factory.createMany(factoryKey, commentsToGen, customCommentSettings, buildOptions).then(commentPeriodComments => {
@@ -184,7 +186,7 @@ function generateCommentSetForCommentPeriod(factoryKey, commentPeriod, buildOpti
 };
 
 function generateDocumentSetForProject(factoryKey, project, buildOptions, projectDocumentsToGen) {
-  console.debug("projectDocumentsToGen = " + projectDocumentsToGen);
+  defaultLog.debug("projectDocumentsToGen = " + projectDocumentsToGen);
   return new Promise(function(resolve, reject) {
     let customDocumentSettings = {};
     customDocumentSettings.documentSource = "PROJECT";
@@ -198,7 +200,7 @@ function generateDocumentSetForProject(factoryKey, project, buildOptions, projec
           .then(physDocument => documentFactory.fixFields(physDocument));
         });
       } catch (e) {
-        console.log(factoryTemplate.factoryKey + " physical file error = '" + e + "'");
+        defaultLog.error(factoryTemplate.factoryKey + " physical file error = '" + e + "'");
       }
       resolve(Promise.all(physicalDocPromises));
     });
@@ -206,7 +208,7 @@ function generateDocumentSetForProject(factoryKey, project, buildOptions, projec
 };
 
 function generateDocumentSetForCommentPeriod(factoryKey, commentPeriod, buildOptions, commentPeriodDocumentsToGen) {
-  console.debug("commentPeriodDocumentsToGen = " + commentPeriodDocumentsToGen);
+  defaultLog.debug("commentPeriodDocumentsToGen = " + commentPeriodDocumentsToGen);
   return new Promise(function(resolve, reject) {
     let customDocumentSettings = {};
     customDocumentSettings.documentSource = "COMMENT";
@@ -221,7 +223,7 @@ function generateDocumentSetForCommentPeriod(factoryKey, commentPeriod, buildOpt
           .then(physDocument => documentFactory.fixFields(physDocument));
         });
       } catch (e) {
-        console.log(factoryTemplate.factoryKey + " physical file error = '" + e + "'");
+        defaultLog.error(factoryTemplate.factoryKey + " physical file error = '" + e + "'");
       }
       resolve(Promise.all(physicalDocPromises));
     });
@@ -229,7 +231,7 @@ function generateDocumentSetForCommentPeriod(factoryKey, commentPeriod, buildOpt
 };
 
 function generateRecentActivitiesSetForProjectDocument(factoryKey, projectDocument, buildOptions, projectDocumentRecentActivitiesToGen) {
-  console.debug("projectDocumentRecentActivitiesToGen = " + projectDocumentRecentActivitiesToGen);
+  defaultLog.debug("projectDocumentRecentActivitiesToGen = " + projectDocumentRecentActivitiesToGen);
   return new Promise(function(resolve, reject) {
   let customRecentActivitySettings = { documentUrl: "/api/document/" + projectDocument._id + "/fetch", contentUrl: "", project: factory_helper.ObjectId(projectDocument.project), pcp: null };
     factory.createMany(factoryKey, projectDocumentRecentActivitiesToGen, customRecentActivitySettings, buildOptions).then(recentActivities => {
@@ -239,7 +241,7 @@ function generateRecentActivitiesSetForProjectDocument(factoryKey, projectDocume
 };
 
 function generateRecentActivitiesSetForCommentPeriod(factoryKey, commentPeriod, buildOptions, commentPeriodRecentActivitiesToGen) {
-  console.debug("commentPeriodRecentActivitiesToGen = " + commentPeriodRecentActivitiesToGen);
+  defaultLog.debug("commentPeriodRecentActivitiesToGen = " + commentPeriodRecentActivitiesToGen);
   return new Promise(function(resolve, reject) {
   let projectsPool = (buildOptions.pipeline) ? buildOptions.pipeline.projects : null;
   const parentProject = projectsPool.filter(project => commentPeriod.project == project.id);
@@ -257,8 +259,8 @@ function generateProjects(usersData) {
       let numOfProjsToGen = genSettings.projects;
       let numOfProjsGenned = 0;
       if (isNaN(numOfProjsToGen)) numOfProjsToGen = test_helper.defaultNumberOfProjects;
-      console.info('Generating ' + numOfProjsToGen + ' projects.');
-      console.debug("documentFactory.MinioControllerBucket = " + documentFactory.MinioControllerBucket);
+      defaultLog.verbose('Generating ' + numOfProjsToGen + ' projects.');
+      defaultLog.debug("documentFactory.MinioControllerBucket = " + documentFactory.MinioControllerBucket);
 
       factory.create(auditFactory.name, {}, {faker: getSeeded(genSettings.generate_consistent_data, uss.audit)}).then(audit =>{
         audit = normalizeFactoryResults(audit);
@@ -281,10 +283,10 @@ function generateProjects(usersData) {
                     pipeline.projects = projectsArray;
                     resolve(pipeline);
                 }).catch(error => {
-                    console.log("Project error:" + error);
+                    defaultLog.error("Project error:" + error);
                     reject(error);
                 }).finally(function(){
-                    console.info('Generated ' + numOfProjsGenned + ' projects.');
+                    defaultLog.verbose('Generated ' + numOfProjsGenned + ' projects.');
                 });
               });
             });
@@ -304,24 +306,24 @@ function generateChildSets(parents, usersPool, listsPool, factoryTemplate) {
       let childGenerationPromises = [emptyPromise];
       try{
         childGenerationPromises = parents.map(parent => {
-          console.debug(factoryTemplate.factoryKey + " parent._id='" + parent._id.toString() + "'");
+          defaultLog.debug(factoryTemplate.factoryKey + " parent._id='" + parent._id.toString() + "'");
           let deterministicSeed = factory_helper.generateDeterministicSeed(factoryTemplate.seed, parent._id);
-          console.debug(factoryTemplate.factoryKey + " deterministicSeed=" + deterministicSeed);
+          defaultLog.debug(factoryTemplate.factoryKey + " deterministicSeed=" + deterministicSeed);
           let buildOptions = {faker: getSeeded(genSettings.generate_consistent_data, deterministicSeed), usersPool: usersPool, listsPool: listsPool}
           return generateChildSet(parent, buildOptions, factoryTemplate);
         });
       } catch (e) {
-        console.debug(factoryTemplate.factoryKey + " typeof parent='" + typeof parent + "'");
-        console.debug(factoryTemplate.factoryKey + " parents.length'" + parents.length + "'");
-        console.debug(factoryTemplate.factoryKey + " all parents ='" + parents + "'");
+        defaultLog.debug(factoryTemplate.factoryKey + " typeof parent='" + typeof parent + "'");
+        defaultLog.debug(factoryTemplate.factoryKey + " parents.length'" + parents.length + "'");
+        defaultLog.debug(factoryTemplate.factoryKey + " all parents ='" + parents + "'");
       }
       resolve(Promise.all(childGenerationPromises));
     });
   }).catch(error => {
-    console.log(factoryTemplate.factoryKey + "s error:" + error);
+    defaultLog.error(factoryTemplate.factoryKey + "s error:" + error);
     reject(error);
   }).finally(function(){
-    console.info("Generated all " + factoryTemplate.factoryKey + " sets.");
+    defaultLog.verbose("Generated all " + factoryTemplate.factoryKey + " sets.");
   });
 };
 
@@ -333,28 +335,28 @@ function generateChildSetsUsingPipeline(parents, pipeline, factoryTemplate) {
       try{
         let childGenerationPromises = parents.map(parent => {
           try{
-            console.debug(factoryTemplate.factoryKey + " parent._id='" + parent._id.toString() + "'");
+            defaultLog.debug(factoryTemplate.factoryKey + " parent._id='" + parent._id.toString() + "'");
             let deterministicSeed = factory_helper.generateDeterministicSeed(factoryTemplate.seed, parent._id);
-            console.debug(factoryTemplate.factoryKey + " deterministicSeed=" + deterministicSeed);
+            defaultLog.debug(factoryTemplate.factoryKey + " deterministicSeed=" + deterministicSeed);
             let buildOptions = {faker: getSeeded(genSettings.generate_consistent_data, factoryTemplate.seed), pipeline: pipeline};
             return generateChildSet(parent, buildOptions, factoryTemplate);
           } catch (e) {
-            console.debug(factoryTemplate.factoryKey + " typeof parent='" + typeof parent + "'");
-            console.debug(factoryTemplate.factoryKey + " parents.length'" + parents.length + "'");
-            console.debug(factoryTemplate.factoryKey + " all parents ='" + parents + "'");
-            console.debug(factoryTemplate.factoryKey + " parent._id lookup. error: " + e + ", parent: " + parent);
+            defaultLog.debug(factoryTemplate.factoryKey + " typeof parent='" + typeof parent + "'");
+            defaultLog.debug(factoryTemplate.factoryKey + " parents.length'" + parents.length + "'");
+            defaultLog.debug(factoryTemplate.factoryKey + " all parents ='" + parents + "'");
+            defaultLog.debug(factoryTemplate.factoryKey + " parent._id lookup. error: " + e + ", parent: " + parent);
           }
         });
         resolve(Promise.all(childGenerationPromises));
       } catch (g) {
-        console.debug(factoryTemplate.factoryKey + " all parents ='" + parents + "'");
+        defaultLog.debug(factoryTemplate.factoryKey + " all parents ='" + parents + "'");
       }
     });
   }).catch(error => {
-    console.log(factoryTemplate.factoryKey + "s error:" + error);
+    defaultLog.error(factoryTemplate.factoryKey + "s error:" + error);
     reject(error);
   }).finally(function(){
-    console.info("Generated all " + factoryTemplate.factoryKey + " sets.");
+    defaultLog.verbose("Generated all " + factoryTemplate.factoryKey + " sets.");
   });
 };
 
@@ -375,10 +377,10 @@ function generateChildSet(parent, buildOptions, factoryTemplate) {
       }
     });
   }).catch(error => {
-    console.log(factoryTemplate.factoryKey + " set generation error:" + error);
+    defaultLog.error(factoryTemplate.factoryKey + " set generation error:" + error);
     reject(error);
   }).finally(function(){
-    console.info("Generated " + factoryTemplate.factoryKey + " set.");
+    defaultLog.verbose("Generated " + factoryTemplate.factoryKey + " set.");
   });
 };
 
@@ -389,47 +391,47 @@ function getSeeded(setConstant, seed) {
 // the factories return all kinds of array nesting and for our generation usage we wish to deal with straight arrays 
 // that we can easily run map functions on.  flatten out any nested arrays factory-girl gives us.
 function normalizeFactoryResults(bumpyArrays) {
-  console.debug("bumpyArrays.length: " + bumpyArrays.length);
-  console.debug("bumpyArrays: " + bumpyArrays);
+  defaultLog.debug("bumpyArrays.length: " + bumpyArrays.length);
+  defaultLog.debug("bumpyArrays: " + bumpyArrays);
   if (!bumpyArrays.filter) {
     let newArray = [];  // do not inline with next line because it will not work
     newArray.push(bumpyArrays);
-    console.debug(newArray);
+    defaultLog.debug(newArray);
     return newArray;
   }
   if ((!!bumpyArrays) && (Array !== bumpyArrays.constructor)) {
     let newArray = [];  // do not inline with next line because it will not work
     newArray.push(bumpyArrays);
-    console.debug(newArray);
+    defaultLog.debug(newArray);
     return newArray;
   }
   let populatedEntries = bumpyArrays.filter(result => (result));
   let directResults = populatedEntries.filter(result => result.hasOwnProperty('_id'));  //0
-  console.debug("directResults.length: " + directResults.length);
+  defaultLog.debug("directResults.length: " + directResults.length);
   let arraysOfResults = populatedEntries.filter(result => !result.hasOwnProperty('_id'));  //84
-  console.debug("arraysOfResults.length: " + arraysOfResults.length);
+  defaultLog.debug("arraysOfResults.length: " + arraysOfResults.length);
   let normalizedResults = [];
   try {
     if (directResults) if (0 < directResults.length) normalizedResults = directResults;
     if (arraysOfResults) if (0 < arraysOfResults.length) {
       arraysOfResults.map(test => {
         if (test.hasOwnProperty('_id')) {
-          console.debug("arraysOfResults.test = " + test);
+          defaultLog.debug("arraysOfResults.test = " + test);
           normalizedResults.push(test);
         } else {
-          console.debug("arraysOfResults.test -> normalizeFactoryResults() with : " + test);
+          defaultLog.debug("arraysOfResults.test -> normalizeFactoryResults() with : " + test);
           normalizeFactoryResults(test).map(result => normalizedResults.push(result));
         }
       });
     }
   } catch (e) {
-    console.log("error: " + e);
-    console.log("errorstate.directResults.length: " + arraysOfResults.length);
-    console.log("errorstate.directResults: " + directResults);
-    console.log("errorstate.arraysOfResults.length: " + arraysOfResults.length);
-    console.log("errorstate.arraysOfResults: " + arraysOfResults);
+    defaultLog.error("error: " + e);
+    defaultLog.error("errorstate.directResults.length: " + arraysOfResults.length);
+    defaultLog.error("errorstate.directResults: " + directResults);
+    defaultLog.error("errorstate.arraysOfResults.length: " + arraysOfResults.length);
+    defaultLog.error("errorstate.arraysOfResults: " + arraysOfResults);
   }
-  console.debug("normalizedResults.length = " + normalizedResults.length);
+  defaultLog.debug("normalizedResults.length = " + normalizedResults.length);
   return normalizedResults;
 }
 

@@ -1,11 +1,13 @@
 const factory = require('factory-girl').factory;
 const factory_helper = require('./factory_helper');
 const moment = require('moment');
+const app_helper = require('../../../app_helper');
 const Document = require('../../helpers/models/document');
 const fs = require('fs');
 const path = require('path');
 const shell = require('shelljs');
 const MinioController = require('../../helpers/minio');
+let defaultLog = app_helper.defaultLog;
 let faker = require('faker/locale/en');
 
 const factoryName = Document.modelName;
@@ -119,10 +121,10 @@ function fixFields(mongooseDoc) {
       let command = {$unset: {_comment: 1, internalOriginalName: 1 }};
       let query = {'_id' : mongooseDoc._id};
       Document.findOneAndUpdate(query, command, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
-        // if (err) {
-        //   console.log(JSON.stringify(err));
-        //   return reject(err);
-        // }
+        if (err) {
+          defaultLog.error(JSON.stringify(err));
+          resolve();
+        }
         resolve(doc);
       });
     } else {
@@ -167,22 +169,22 @@ function generatePhysicalFile(faker, generateFiles, persistFiles, mongooseDoc) {
       .putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, editableDocument.project, userUploadedFileName, tempFilePath)
       .then(async function (minioFile) {
         editableDocument.internalURL = minioFile.path;
-        // console.log("Successfully uploaded file to " + editableDocument.internalURL);
+        defaultLog.info("Successfully uploaded file to " + editableDocument.internalURL);
         Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
-          // if (err) {
-          //   console.log(JSON.stringify(err));
-          //   return reject(err);
-          // }
+          if (err) {
+            defaultLog.error(JSON.stringify(err));
+            resolve();
+          }
           return resolve(doc);
         });
       })
       .catch(function (error) {
-        // console.log(error);
+        defaultLog.error(error);
         Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
-          // if (err) {
-          //   console.log(JSON.stringify(err));
-          //   return reject(err);
-          // }
+          if (err) {
+            defaultLog.error(JSON.stringify(err));
+            resolve();
+          }
           return resolve(doc);
         });
       })
@@ -192,10 +194,10 @@ function generatePhysicalFile(faker, generateFiles, persistFiles, mongooseDoc) {
       });
     }
     Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
-      // if (err) {
-      //   console.log(JSON.stringify(err));
-      //   return reject(err);
-      // }
+      if (err) {
+        defaultLog.error(JSON.stringify(err));
+        resolve();
+      }
       return resolve(doc);
     });
   });
