@@ -166,10 +166,10 @@ function generatePhysicalFile(faker, generateFiles, persistFiles, mongooseDoc) {
       fs.copyFileSync(templatePath, tempFilePath);
       factory_helper.touchPath(tempFilePath);
       return MinioController
-      .putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, editableDocument.project, userUploadedFileName, tempFilePath)
+      .putDocument(MinioController.BUCKETS.DOCUMENTS_BUCKET, editableDocument.project.toString(), userUploadedFileName, tempFilePath)
       .then(async function (minioFile) {
         editableDocument.internalURL = minioFile.path;
-        defaultLog.info("Successfully uploaded file to " + editableDocument.internalURL);
+        defaultLog.verbose("Successfully uploaded file to " + editableDocument.internalURL);
         Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
           if (err) {
             defaultLog.error(JSON.stringify(err));
@@ -179,7 +179,14 @@ function generatePhysicalFile(faker, generateFiles, persistFiles, mongooseDoc) {
         });
       })
       .catch(function (error) {
-        defaultLog.error(error);
+        defaultLog.error("MinioController.BUCKETS.DOCUMENTS_BUCKET = '" + MinioController.BUCKETS.DOCUMENTS_BUCKET + "'"
+         + ", MinioController.host = '" + MinioController.host + "'"
+         + ", MinioController.port = '" + MinioController.port + "'"
+         + ", MinioController.protocol = '" + MinioController.protocol + "'"
+         + ", project = '" + editableDocument.project.toString() + "'"
+         + ", userUploadedFileName = '" + userUploadedFileName + "'"
+         + ", tempFilePath = '" + tempFilePath + "'"
+         + ", error = '" + error + "'\n");
         Document.findOneAndUpdate(query, editableDocument, {upsert: false, new: true, useFindAndModify: false}, function(err, doc) {
           if (err) {
             defaultLog.error(JSON.stringify(err));

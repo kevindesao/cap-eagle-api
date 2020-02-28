@@ -16,6 +16,10 @@ var minioClient = new minio.Client({
   secretKey: process.env.MINIO_SECRET_KEY
 });
 
+exports.host = minioClient.host;
+exports.port = minioClient.port;
+exports.protocol = minioClient.protocol;
+
 // This is the list of known, valid buckets documents can be uploaded and downloaded from
 // Set from a system environment variable, if that's not available then defaults to 'uploads'
 var BUCKETS = _.isEmpty(process.env.MINIO_BUCKET_NAME) ? { DOCUMENTS_BUCKET: 'uploads' } : { DOCUMENTS_BUCKET: process.env.MINIO_BUCKET_NAME };
